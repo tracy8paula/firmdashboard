@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Executive Summary{% endblock %}
+{% block content %}
+
+<h1 class="text-xl font-semibold text-slate-900 mb-6">Executive Summary</h1>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div class="bg-white rounded border border-slate-200 p-5">
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total revenue</div>
+    <div class="text-2xl font-semibold text-slate-900 mt-2">${{ "%.2f"|format(summary.total_revenue) }}</div>
+  </div>
+  <div class="bg-white rounded border border-slate-200 p-5">
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Open complaints</div>
+    <div class="text-2xl font-semibold text-slate-900 mt-2">{{ summary.open_complaints }}</div>
+  </div>
+  <div class="bg-white rounded border border-slate-200 p-5">
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Maintenance due (7d)</div>
+    <div class="text-2xl font-semibold text-slate-900 mt-2">{{ summary.maintenance_due_7d }}</div>
+  </div>
+  <div class="bg-white rounded border border-slate-200 p-5">
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Low stock items</div>
+    <div class="text-2xl font-semibold text-slate-900 mt-2">{{ summary.low_stock_count }}</div>
+  </div>
+</div>
+
+{% endblock %}
