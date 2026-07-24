@@ -1,26 +1,7 @@
-"""
-Fully self-contained Flask application — no React, no Node, no npm,
-no build step. Just Python + Jinja templates + Tailwind via CDN.
-
-SETUP
-    pip install -r requirements.txt --break-system-packages
-    python create_starter_workbook.py     # only once, to create company_data.xlsx
-    python app.py
-
-Then open http://localhost:5000 on this PC, or http://<this-PC's-LAN-IP>:5000
-from any other PC on the same network.
-
-Login accounts (change these below before real use):
+"""Login accounts (change these below before real use):
     engineer / changeme1   -> Biomedical Engineer dashboard
     sales    / changeme2   -> Sales Rep dashboard
     exec     / changeme3   -> Executive dashboard
-
-STYLING
-Every visible page is a plain HTML file in templates/ with Tailwind
-utility classes in the class="..." attributes. Edit those directly,
-save, refresh the browser — nothing to build or restart except a
-plain `python app.py` restart if you change app.py itself (templates
-reload automatically).
 """
 
 import threading
@@ -31,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 from flask import (
     Flask,
+    jsonify,
     flash,
     redirect,
     render_template,
@@ -42,14 +24,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 # ---------------------- CONFIG ----------------------
 
-EXCEL_PATH = {
-    "Items": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL0DnLtYg6nghq54svoVFcQEXC_wU41fte-SqdKDFNeVBUegcbQbZmuxM-cgX3LBhs5-VF9lOSMyef/pub?gid=127060097&single=true&output=csv",
-    "Sales": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL0DnLtYg6nghq54svoVFcQEXC_wU41fte-SqdKDFNeVBUegcbQbZmuxM-cgX3LBhs5-VF9lOSMyef/pub?gid=1935654441&single=true&output=csv",
-    "Maintenance": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL0DnLtYg6nghq54svoVFcQEXC_wU41fte-SqdKDFNeVBUegcbQbZmuxM-cgX3LBhs5-VF9lOSMyef/pub?gid=124639110&single=true&output=csv",
-    "Complaints": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL0DnLtYg6nghq54svoVFcQEXC_wU41fte-SqdKDFNeVBUegcbQbZmuxM-cgX3LBhs5-VF9lOSMyef/pub?gid=1263924337&single=true&output=csv"
-}
+EXCEL_PATH = Path(__file__).parent / "company_data.xlsx"
+
 LOW_STOCK_THRESHOLD = 3
 MAINTENANCE_DUE_SOON_DAYS = 3
+RANGE_DAYS = {"week": 7, "month": 30, "6months": 182}
 
 # Change these passwords before real use.
 USERS = {
@@ -77,7 +56,7 @@ _lock = threading.Lock()  # avoid two requests writing the file at once
 
 def read_all_sheets() -> dict[str, pd.DataFrame]:
     with _lock:
-        return {name: pd.read_csv(path, dtype=str) for name, path in EXCEL_PATH.items()}
+        return pd.read_excel(EXCEL_PATH, sheet_name=None, dtype=str)
 
 
 def write_all_sheets(sheets: dict[str, pd.DataFrame]) -> None:
@@ -252,6 +231,40 @@ def exec_dashboard():
         },
     )
 
+# ---- Analytics API -----  
+@app.route("/api/analytics")
+@login_required()
+def analytics():
+    range_key = request.args.get("range", "week")
+    days = RANGE_DAYS.get(range_key, 7)
+
+    sheets = read_all_sheets()
+    df = sheets["Sales"].copy()
+    df["date"] = pd.to_datetime(df["date"])
+    df["amount"] = df["amount"].astype(float)
+
+    cutoff = datetime.now() - timedelta(days=days)
+    df = df[df["date"] >= cutoff].sort_values("date")
+
+    top = df.groupby("item")["amount"].sum().sort_values(ascending=False).head(5)
+    top_products = [{"item": i, "revenue": round(float(v), 2)} for i, v in top.items()]
+
+    if range_key == "week":
+        bucket_key = df["date"].dt.strftime("%Y-%m-%d")
+        label_fmt = lambda k: datetime.strptime(k, "%Y-%m-%d").strftime("%a %d")
+    elif range_key == "month":
+        periods = df["date"].dt.to_period("W")
+        bucket_key = periods.astype(str)
+        label_lookup = {str(p): p.start_time.strftime("Week of %b %d") for p in periods.unique()}
+        label_fmt = lambda k: label_lookup[k]
+    else:  # 6months
+        bucket_key = df["date"].dt.strftime("%Y-%m")
+        label_fmt = lambda k: datetime.strptime(k, "%Y-%m").strftime("%b %Y")
+
+    trend_series = df.groupby(bucket_key)["amount"].sum().sort_index()
+    trend = [{"label": label_fmt(k), "revenue": round(float(v), 2)} for k, v in trend_series.items()]
+
+    return jsonify({"top_products": top_products, "trend": trend})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

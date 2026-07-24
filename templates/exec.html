@@ -23,4 +23,84 @@
   </div>
 </div>
 
+<section class="mt-10">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Analytics</h2>
+    <div class="flex gap-1 bg-slate-100 rounded p-1">
+      <button data-range="week" class="range-btn px-3 py-1 text-xs rounded font-medium">Week</button>
+      <button data-range="month" class="range-btn px-3 py-1 text-xs rounded font-medium">Month</button>
+      <button data-range="6months" class="range-btn px-3 py-1 text-xs rounded font-medium">6 Months</button>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-white rounded border border-slate-200 p-4">
+      <h3 class="text-sm font-medium text-slate-700 mb-2">Best-selling products</h3>
+      <canvas id="topProductsChart" height="220"></canvas>
+    </div>
+    <div class="bg-white rounded border border-slate-200 p-4">
+      <h3 class="text-sm font-medium text-slate-700 mb-2">Revenue trend</h3>
+      <canvas id="revenueTrendChart" height="220"></canvas>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let pieChart, lineChart;
+
+  function setActiveButton(range) {
+    document.querySelectorAll(".range-btn").forEach((btn) => {
+      const active = btn.dataset.range === range;
+      btn.classList.toggle("bg-white", active);
+      btn.classList.toggle("shadow-sm", active);
+      btn.classList.toggle("text-slate-900", active);
+      btn.classList.toggle("text-slate-500", !active);
+    });
+  }
+
+  async function loadAnalytics(range) {
+    setActiveButton(range);
+    const res = await fetch(`/api/analytics?range=${range}`);
+    const data = await res.json();
+
+    const productLabels = data.top_products.map((p) => p.item);
+    const productValues = data.top_products.map((p) => p.revenue);
+    const trendLabels = data.trend.map((t) => t.label);
+    const trendValues = data.trend.map((t) => t.revenue);
+
+    if (!pieChart) {
+      pieChart = new Chart(document.getElementById("topProductsChart"), {
+        type: "pie",
+        data: { labels: productLabels, datasets: [{ data: productValues }] },
+        options: { plugins: { legend: { position: "bottom" } } },
+      });
+      lineChart = new Chart(document.getElementById("revenueTrendChart"), {
+        type: "line",
+        data: {
+          labels: trendLabels,
+          datasets: [{ label: "Revenue", data: trendValues, borderColor: "#0f766e", tension: 0.3 }],
+        },
+        options: { plugins: { legend: { display: false } } },
+      });
+    } else {
+      pieChart.data.labels = productLabels;
+      pieChart.data.datasets[0].data = productValues;
+      pieChart.update();
+      lineChart.data.labels = trendLabels;
+      lineChart.data.datasets[0].data = trendValues;
+      lineChart.update();
+    }
+  }
+
+  document.querySelectorAll(".range-btn").forEach((btn) => {
+    btn.addEventListener("click", () => loadAnalytics(btn.dataset.range));
+  });
+
+  loadAnalytics("week");
+</script>
+
 {% endblock %}
