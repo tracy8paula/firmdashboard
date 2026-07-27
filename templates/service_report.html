@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Service Report {{ report.id }}{% endblock %}
 {% block content %}
+
+<div class="flex justify-end mb-4 print:hidden">
+  <button onclick="window.print()" class="bg-slate-900 text-white rounded px-4 py-2 text-sm font-medium hover:bg-slate-800">
+    Print / Save as PDF
+  </button>
+</div>
+
 <div class="max-w-2xl bg-white rounded border border-slate-200 p-8">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-xl font-semibold text-slate-900">Technical Service Report</h1>

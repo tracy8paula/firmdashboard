@@ -24,6 +24,33 @@
 </div>
 
 <section class="mt-10">
+  <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Technical Service Reports</h2>
+  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-slate-600 text-left">
+        <tr>
+          <th class="px-4 py-2">Date</th><th class="px-4 py-2">Item</th>
+          <th class="px-4 py-2">Client</th><th class="px-4 py-2">Engineer</th><th class="px-4 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in service_reports %}
+        <tr class="border-t border-slate-100">
+          <td class="px-4 py-2">{{ r.date_completed }}</td>
+          <td class="px-4 py-2">{{ r.item }}</td>
+          <td class="px-4 py-2">{{ r.client }}</td>
+          <td class="px-4 py-2">{{ r.engineer_assigned }}</td>
+          <td class="px-4 py-2">
+            <a href="{{ url_for('view_service_report', report_id=r.id) }}" class="text-xs text-slate-600 underline hover:text-slate-900">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mt-10">
   <div class="flex items-center justify-between mb-3">
     <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Analytics</h2>
     <div class="flex gap-1 bg-slate-100 rounded p-1">

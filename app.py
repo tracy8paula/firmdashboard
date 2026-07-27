@@ -266,7 +266,7 @@ def service_maintenance(maintenance_id):
 
 
 @app.route("/engineer/service-report/<report_id>")
-@login_required(role="engineer")
+@login_required()
 def view_service_report(report_id):
     sheets = read_all_sheets()
     reports_df = sheets.get("ServiceReports")
@@ -300,14 +300,14 @@ def log_sale():
 
     quantity = int(request.form.get("quantity", "1") or 1)
     payment_type = request.form.get("payment_type", "Cash")
-    amount = request.form.get("amount_paid", "0")
-    amount_paid = request.form.get("amount_paid") or (amount if payment_type == "Cash" else "0")
+    amount_paid = request.form.get("amount_paid", "0")
+    amount_paid = request.form.get("amount_paid") or (amount_paid if payment_type == "Cash" else "0")
     balance_due_date = request.form.get("balance_due_date", "")
     item_name = request.form.get("item", "")
 
     new_row = {
         "id": f"S-{next_num}", "item": item_name, "client": request.form.get("client", ""),
-        "amount_paid": amount, "date": request.form.get("date", datetime.now().strftime("%Y-%m-%d")),
+        "amount_paid": amount_paid, "date": request.form.get("date", datetime.now().strftime("%Y-%m-%d")),
         "quantity": str(quantity), "payment_type": payment_type, "amount_paid": amount_paid,
         "balance_due_date": balance_due_date, "type": "Sale",
     }
@@ -333,7 +333,7 @@ def exec_dashboard():
     sheets = read_all_sheets()
 
     sales_df = sheets["Sales"]
-    total_revenue = sales_df["amount"].astype(float).sum() if len(sales_df) else 0.0
+    total_revenue = sales_df["amount_paid"].astype(float).sum() if len(sales_df) else 0.0
 
     complaints_df = sheets["Complaints"]
     open_complaints = int((complaints_df["status"] != "Resolved").sum())
@@ -345,6 +345,9 @@ def exec_dashboard():
     items_df = sheets["Items"]
     low_stock_count = int((items_df["stock"].astype(int) < LOW_STOCK_THRESHOLD).sum())
 
+    reports_df = sheets.get("ServiceReports")
+    service_reports = df_to_records(reports_df.sort_values("date_completed", ascending=False)) if reports_df is not None and len(reports_df) else []
+
     return render_template(
         "exec.html",
         summary={
@@ -353,6 +356,7 @@ def exec_dashboard():
             "maintenance_due_7d": maintenance_due_7d,
             "low_stock_count": low_stock_count,
         },
+        service_reports=service_reports,
     )
 
 
