@@ -31,38 +31,52 @@
   </div>
 </section>
 
-<section class="mb-10">
-  <h2 class="text-xl font-semibold text-slate-500 sentence-case tracking-wide mb-3">Log a sale</h2>
-  <div class="bg-white rounded border border-slate-200 p-4">
-    <form method="POST" action="{{ url_for('log_sale') }}" class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Item</label>
-        <select name="item" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
-          {% for item in items %}
-          <option value="{{ item.name }}">{{ item.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Client</label>
-        <input name="client" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Amount</label>
-        <input name="amount" type="number" step="0.01" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Date</label>
-        <input name="date" type="date" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
-      </div>
-      <div class="col-span-2">
-        <button type="submit" class="bg-slate-900 text-white rounded px-4 py-2 text-sm font-medium hover:bg-slate-800">
-          Log sale
-        </button>
-      </div>
-    </form>
+<form method="POST" action="{{ url_for('log_sale') }}" class="grid grid-cols-2 gap-4">
+  <div>
+    <label class="block text-sm font-medium text-slate-600 mb-1">Item</label>
+    <select name="item" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+      {% for item in items %}
+      <option value="{{ item.name }}">{{ item.name }}</option>
+      {% endfor %}
+    </select>
   </div>
-</section>
+  <div>
+    <label class="block text-sm font-medium text-slate-600 mb-1">Quantity</label>
+    <input name="quantity" type="number" min="1" value="1" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-600 mb-1">Client</label>
+    <input name="client" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-600 mb-1">Amount</label>
+    <input name="amount" type="number" step="0.01" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-600 mb-1">Payment type</label>
+    <select name="payment_type" onchange="document.getElementById('creditFields').style.display = this.value === 'Credit' ? 'grid' : 'none'" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+      <option value="Cash">Cash</option>
+      <option value="Credit">Credit</option>
+    </select>
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-600 mb-1">Date</label>
+    <input name="date" type="date" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+  </div>
+  <div id="creditFields" class="col-span-2 grid grid-cols-2 gap-4" style="display:none;">
+    <div>
+      <label class="block text-sm font-medium text-slate-600 mb-1">Amount paid so far</label>
+      <input name="amount_paid" type="number" step="0.01" value="0" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-600 mb-1">Balance due date</label>
+      <input name="balance_due_date" type="date" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+    </div>
+  </div>
+  <div class="col-span-2">
+    <button type="submit" class="bg-slate-900 text-white rounded px-4 py-2 text-sm font-medium hover:bg-slate-800">Log sale</button>
+  </div>
+</form>
 
 <section>
   <h2 class="text-xl font-semibold text-slate-500 sentence-case tracking-wide mb-3">Sales history</h2>
@@ -70,19 +84,18 @@
     <table class="w-full text-medium">
       <thead class="bg-slate-100 text-slate-600 text-left">
         <tr>
-          <th class="px-4 py-2">Date</th>
-          <th class="px-4 py-2">Item</th>
-          <th class="px-4 py-2">Client</th>
-          <th class="px-4 py-2">Amount</th>
+          <th class="px-4 py-2">Date</th><th class="px-4 py-2">Item</th><th class="px-4 py-2">Client</th>
+          <th class="px-4 py-2">Amount</th><th class="px-4 py-2">Payment</th><th class="px-4 py-2">Balance</th>
         </tr>
       </thead>
-      <tbody>
-        {% for s in sales %}
+      <tbody> {% for s in sales %}
         <tr class="border-t border-slate-100">
           <td class="px-4 py-2">{{ s.date }}</td>
           <td class="px-4 py-2">{{ s.item }}</td>
           <td class="px-4 py-2">{{ s.client }}</td>
           <td class="px-4 py-2">ugx {{ "%.0f"|format(s.amount|float) }}</td>
+          <td class="px-4 py-2">{{ s.payment_type }}</td>
+          <td class="px-4 py-2">{% if s.payment_type == 'Credit' %}paid {{ s.amount_paid }} · due {{ s.balance_due_date }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
