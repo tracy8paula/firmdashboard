@@ -5,8 +5,8 @@
 <h1 class="text-3xl font-bold text-slate-900 mb-6">Sales & Inventory</h1>
 
 <section class="mb-10">
-  <h2 class="text-xl font-semibold text-slate-500 sentence-case tracking-wide mb-3">Items</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+  <h2 class="text-l font-semibold text-slate-700 sentence-case tracking-wide mb-3">Items</h2>
+  <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-100 text-slate-600 text-left">
         <tr>
@@ -29,7 +29,7 @@
   </div>
 </section>
 
-<form method="POST" action="{{ url_for('log_sale') }}" class="grid grid-cols-2 gap-4">
+<form method="POST" action="{{ url_for('log_sale') }}" class="grid grid-cols-2 gap-6 mb-10">
   <div>
     <label class="block text-sm font-medium text-slate-600 mb-1">Item</label>
     <select name="item" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
@@ -72,14 +72,14 @@
     </div>
   </div>
   <div class="col-span-2">
-    <button type="submit" class="bg-slate-900 text-white rounded px-4 py-2 text-sm font-medium hover:bg-slate-800">Log sale</button>
+    <button type="submit" class="bg-slate-700 text-white rounded px-4 py-2 text-sm font-medium hover:bg-slate-800">Log sale</button>
   </div>
 </form>
 
 <section>
-  <h2 class="text-xl font-semibold text-slate-500 sentence-case tracking-wide mb-3">Sales history</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
-    <table class="w-full text-medium">
+  <h2 class="text-l font-semibold text-slate-700 sentence-case tracking-wide mb-3">Sales history</h2>
+  <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
       <thead class="bg-slate-100 text-slate-600 text-left">
         <tr>
           <th class="px-4 py-2">Date</th><th class="px-4 py-2">Item</th><th class="px-4 py-2">Client</th>
@@ -88,12 +88,12 @@
       </thead>
       <tbody> {% for s in sales %}
         <tr class="border-t border-slate-100">
-          <td class="px-4 py-2">{{ s.date }}</td>
-          <td class="px-4 py-2">{{ s.item }}</td>
-          <td class="px-4 py-2">{{ s.client }}</td>
-          <td class="px-4 py-2">ugx {{ "%.0f"|format(s.amount_paid|float) }}</td>
-          <td class="px-4 py-2">{{ s.payment_type }}</td>
-          <td class="px-4 py-2">{% if s.payment_type == 'Credit' %}paid {{ s.amount_paid }} · due {{ s.balance_due_date }}{% else %}—{% endif %}</td>
+          <td class="px-2 py-2">{{ s.date }}</td>
+          <td class="px-2 py-2">{{ s.item }}</td>
+          <td class="px-2 py-2">{{ s.client }}</td>
+          <td class="px-2 py-2">ugx {{ "%.0f"|format(s.amount_paid|float) }}</td>
+          <td class="px-2 py-2">{{ s.payment_type }}</td>
+          <td class="px-2 py-2">{% if s.payment_type == 'Credit' %}paid {{ s.amount_paid }} · due {{ s.balance_due_date }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

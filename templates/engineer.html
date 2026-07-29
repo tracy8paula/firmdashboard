@@ -2,17 +2,16 @@
 {% block title %}Inventory & Maintenance{% endblock %}
 {% block content %}
 
-<h1 class="text-xl font-semibold text-slate-900 mb-6">Inventory & Maintenance</h1>
+<h1 class="text-3xl font-semibold text-slate-900 mb-6">Inventory & Maintenance</h1>
 
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Items</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Items</h2>
+  <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-100 text-slate-600 text-left">
         <tr>
           <th class="px-4 py-2">Name</th>
           <th class="px-4 py-2">Location</th>
-          <th class="px-4 py-2">Status</th>
           <th class="px-4 py-2">Stock</th>
         </tr>
       </thead>
@@ -21,7 +20,6 @@
         <tr class="border-t border-slate-100">
           <td class="px-4 py-2">{{ item.name }}</td>
           <td class="px-4 py-2">{{ item.location }}</td>
-          <td class="px-4 py-2">{{ item.status }}</td>
           <td class="px-4 py-2 {% if item.low_stock %}text-red-600 font-medium{% endif %}">{{ item.stock }}</td>
         </tr>
         {% endfor %}
@@ -29,16 +27,17 @@
     </table>
   </div>
 </section>
+
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Maintenance</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
-    <table class="w-full text-sm">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Maintenance</h2>
+  <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm text-left">
       <thead class="bg-slate-100 text-slate-600 text-left">
         <tr>
           <th class="px-4 py-2">Item</th>
           <th class="px-4 py-2">Client</th>
-          <th class="px-4 py-2">Date supplied</th>
-          <th class="px-4 py-2">Warranty</th>
+          <th class="px-18 py-2">Date supplied</th>
+          <th class="px-6 py-2">Warranty</th>
           <th class="px-4 py-2">Next due</th>
           <th class="px-4 py-2">Assigned engineer</th>
           <th class="px-4 py-2">Action</th>
@@ -48,11 +47,11 @@
         {% for m in maintenance %}
         <tr class="border-t border-slate-100 {% if m.due_soon %}bg-amber-50{% endif %} {% if m.overdue %}bg-red-50{% endif %}">
           <td class="px-4 py-2">{{ m.item }}</td>
-          <td class="px-4 py-2">{{ m.client }}</td>
+          <td class="px-3 py-2">{{ m.client }}</td>
           <td class="px-4 py-2">{{ m.date_supplied }}</td>
-          <td class="px-4 py-2">
+          <td class="px-2 py-2">
             {% if m.warranty_valid %}
-              <span class="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">Valid until {{ m.warranty_end_date }}</span>
+              <span class="text-xs text-green-800 px-0.5 py-0.5">Valid until {{ m.warranty_end_date }}</span>
             {% elif m.warranty_valid == false %}
               <span class="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs">Expired {{ m.warranty_end_date }}</span>
             {% else %}
@@ -60,7 +59,6 @@
             {% endif %}
           </td>
           <td class="px-4 py-2 font-medium">
-            {{ m.Next_due_date }}
             {% if m.overdue %}<span class="text-red-600 text-xs ml-1">overdue</span>
             {% elif m.due_soon %}<span class="text-amber-600 text-xs ml-1">due soon</span>
             {% else %}<span class="text-slate-400 text-xs ml-1">{{ m.days_remaining }}d left</span>{% endif %}
@@ -74,8 +72,8 @@
               </select>
             </form>
           </td>
-          <td class="px-4 py-2">
-            <a href="{{ url_for('service_maintenance', maintenance_id=m.id) }}" class="text-xs bg-slate-900 text-white rounded px-2 py-1 hover:bg-slate-800">Complete service</a>
+          <td class="text-xs text-slate-600 px-1 py-2 hover:bg-slate-200">
+            <a href="{{ url_for('service_maintenance', maintenance_id=m.id) }}">Complete service</a>
           </td>
         </tr>
         {% endfor %}
@@ -84,28 +82,27 @@
   </div>
 </section>
 
-<section>
-  <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Complaints</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+<section class="w-full">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Complaints</h2>
+  <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-100 text-slate-600 text-left">
         <tr>
-          <th class="px-4 py-2">ID</th>
-          <th class="px-4 py-2">Item</th>
-          <th class="px-4 py-2">Client</th>
+          <th class="px-2 py-2">ID</th>
+          <th class="px-3 py-2">Item</th>
+          <th class="px-2 py-2">Client</th>
           <th class="px-4 py-2">Opened</th>
           <th class="px-4 py-2">Status</th>
-          <th class="px-4 py-2">Notes</th>
           <th class="px-4 py-2">Update</th>
         </tr>
       </thead>
       <tbody>
         {% for c in complaints %}
         <tr class="border-t border-slate-100 align-top">
-          <td class="px-4 py-2">{{ c.id }}</td>
-          <td class="px-4 py-2">{{ c.item }}</td>
-          <td class="px-4 py-2">{{ c.client }}</td>
-          <td class="px-4 py-2">{{ c.date_opened }}</td>
+          <td class="px-2 py-2">{{ c.id }}</td>
+          <td class="px-2 py-2">{{ c.item }}</td>
+          <td class="px-2 py-2">{{ c.client }}</td>
+          <td class="px-2 py-2">{{ c.date_opened }}</td>
           <td class="px-4 py-2">
             <span class="px-2 py-0.5 rounded text-xs
               {% if c.status == 'Resolved' %}bg-green-100 text-green-800
@@ -114,7 +111,6 @@
               {{ c.status }}
             </span>
           </td>
-          <td class="px-4 py-2 text-slate-600">{{ c.resolution_notes }}</td>
           <td class="px-4 py-2">
             <form method="POST" action="{{ url_for('update_complaint', complaint_id=c.id) }}" class="space-y-1">
               <select name="status" class="border border-slate-300 rounded text-xs px-1 py-1 w-full">
@@ -124,7 +120,7 @@
               </select>
               <input name="resolution_notes" value="{{ c.resolution_notes }}" placeholder="Resolution notes"
                      class="border border-slate-300 rounded text-xs px-1 py-1 w-full">
-              <button type="submit" class="w-full bg-slate-900 text-white rounded text-xs py-1 hover:bg-slate-800">Save</button>
+              <button type="submit" class="w-full bg-slate-600 text-white rounded text-xs py-1 hover:bg-slate-800">Save</button>
             </form>
           </td>
         </tr>

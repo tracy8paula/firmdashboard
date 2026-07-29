@@ -332,31 +332,57 @@ def log_sale():
 def exec_dashboard():
     sheets = read_all_sheets()
 
-    sales_df = sheets["Sales"]
-    total_revenue = sales_df["amount_paid"].astype(float).sum() if len(sales_df) else 0.0
+    sales_df = sheets["Sales"].copy()
+    client_sales_df = sales_df[sales_df["type"] != "Maintenance"] if "type" in sales_df.columns else sales_df
+    total_revenue = client_sales_df["amount"].astype(float).sum() if len(client_sales_df) else 0.0
 
     complaints_df = sheets["Complaints"]
     open_complaints = int((complaints_df["status"] != "Resolved").sum())
 
     maintenance_df = sheets["Maintenance"]
-    cutoff = (datetime.now() + timedelta(days=7)).strftime("%d-%m-%Y")
+    cutoff = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
     maintenance_due_7d = int((maintenance_df["next_due_date"] <= cutoff).sum())
 
     items_df = sheets["Items"]
     low_stock_count = int((items_df["stock"].astype(int) < LOW_STOCK_THRESHOLD).sum())
 
+    status_counts = complaints_df["status"].value_counts().to_dict()
+    complaints_by_status = {"Open": int(status_counts.get("Open", 0)),
+                            "In Progress": int(status_counts.get("In Progress", 0)),
+                            "Resolved": int(status_counts.get("Resolved", 0)),
+                            }
+
+    activity = []
+    for _, row in client_sales_df.iterrows():
+        activity.append({"date": row["date"], "type": "Sale", 
+                        "description": f"{row['item']} sold to {row['client']}",
+                        "status": "Completed",
+                        })
     reports_df = sheets.get("ServiceReports")
-    service_reports = df_to_records(reports_df.sort_values("date_completed", ascending=False)) if reports_df is not None and len(reports_df) else []
+    if reports_df is not None:
+        for _, row in reports_df.iterrows():
+            activity.append({"date": row["date_completed"], "type": "Maintenance",
+                            "description": f"Serviced {row['item']} for {row['client']}",
+                            "status": "Completed",
+                            })
+    for _, row in complaints_df.iterrows():
+        activity.append({"date": row["date_opened"], "type": "Complaint",
+                        "description": f"{row['item']} — {row['client']}",
+                        "status": row["status"],
+                    })
+    activity.sort(key=lambda a: a["date"], reverse=True)
+    recent_activity = activity[:8]
 
     return render_template(
         "exec.html",
-        summary={
-            "total_revenue": total_revenue,
-            "open_complaints": open_complaints,
-            "maintenance_due_7d": maintenance_due_7d,
-            "low_stock_count": low_stock_count,
-        },
-        service_reports=service_reports,
+        summary={"total_revenue": total_revenue,
+                "open_complaints": open_complaints,
+                "maintenance_due_7d": maintenance_due_7d,
+                "low_stock_count": low_stock_count,
+                },
+        complaints_by_status=complaints_by_status,
+        recent_activity=recent_activity,
+        exec_name=session.get("name", "Executive"),
     )
 
 

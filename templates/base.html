@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Medical Ops Dashboard{% endblock %}</title>
+  <title>{% block title %}Firm Medical Dashboard{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen">
 
   {% if session.get('role') %}
-  <nav class="bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
-    <div class="font-semibold">Medical Ops Dashboard</div>
-    <div class="flex items-center gap-4 text-sm">
+  <nav class="bg-slate-700 text-white px-6 py-3 flex items-center justify-between">
+    <div class="font-semibold">Firm Medical Dashboard</div>
+    <div class="flex items-center gap-3 text-sm">
       <span class="text-slate-300">{{ session.get('name') }}</span>
       <a href="{{ url_for('logout') }}" class="text-slate-300 hover:text-white underline">Sign out</a>
     </div>
