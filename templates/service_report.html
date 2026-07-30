@@ -18,7 +18,7 @@
     <dt class="text-slate-500">Date completed</dt>
     <dd class="text-slate-900">{{ report.date_completed }}</dd>
     <dt class="text-slate-500">Part used</dt>
-    <dd class="text-slate-900">{{ report.part_used or "—" }} {% if report.part_used %}(x{{ report.part_qty }}){% endif
+    <dd class="text-slate-900">{{ report.part_used or "None were used." }} {% if report.part_used %}(x{{ report.part_qty }}){% endif
       %}</dd>
   </dl>
   <div class="mt-6">

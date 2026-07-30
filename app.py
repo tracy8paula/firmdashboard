@@ -90,7 +90,7 @@ def get_maintenance_with_flags(sheets) -> list[dict]:
     today = datetime.now().date()
     soon_cutoff = today + timedelta(days=MAINTENANCE_DUE_SOON_DAYS)
     for r in records:
-        due = pd.to_datetime(r["next_due_date"]).date()
+        due = pd.to_datetime(r["next_due_date"], format="mixed").date()
         r["overdue"] = due < today
         r["due_soon"] = today <= due <= soon_cutoff
         r["days_remaining"] = (due - today).days
@@ -181,6 +181,9 @@ def update_complaint(complaint_id):
     df = sheets["Complaints"]
     match = df["id"] == complaint_id
     if match.any():
+        if df.loc[match, "status"].iloc[0] == "Resolved":
+            flash("This complaint is already resolved and locked.")
+            return redirect(url_for("engineer_dashboard"))
         df.loc[match, "status"] = request.form.get("status", "")
         df.loc[match, "resolution_notes"] = request.form.get("resolution_notes", "")
         sheets["Complaints"] = df
@@ -212,7 +215,12 @@ def service_maintenance(maintenance_id):
     if not match.any():
         flash("Maintenance record not found.")
         return redirect(url_for("engineer_dashboard"))
-    record = m_df[match].iloc[0].to_dict()
+    record = m_df.fillna("")[match].iloc[0].to_dict()
+    due = pd.to_datetime(record["next_due_date"], format="mixed").date()
+    today = datetime.now().date()
+    if (due - today).days > MAINTENANCE_DUE_SOON_DAYS:
+        flash("This item isn't due for service yet.")
+        return redirect(url_for("engineer_dashboard"))
 
     if request.method == "POST":
         issue_reported = request.form.get("issue_reported", "")
@@ -273,7 +281,7 @@ def view_service_report(report_id):
     if reports_df is None or not (reports_df["id"] == report_id).any():
         flash("Report not found.")
         return redirect(url_for("engineer_dashboard"))
-    report = reports_df[reports_df["id"] == report_id].iloc[0].to_dict()
+    report = reports_df.fillna("")[reports_df["id"] == report_id].iloc[0].to_dict()
     return render_template("service_report.html", report=report)
 
 
@@ -373,6 +381,11 @@ def exec_dashboard():
     activity.sort(key=lambda a: a["date"], reverse=True)
     recent_activity = activity[:8]
 
+    service_reports = (df_to_records(reports_df.sort_values("date_completed", ascending=False))
+                        if reports_df is not None and len(reports_df)
+                        else []
+                        )
+
     return render_template(
         "exec.html",
         summary={"total_revenue": total_revenue,
@@ -382,6 +395,7 @@ def exec_dashboard():
                 },
         complaints_by_status=complaints_by_status,
         recent_activity=recent_activity,
+        service_reports=service_reports,
         exec_name=session.get("name", "Executive"),
     )
 
@@ -396,7 +410,7 @@ def analytics():
 
     sheets = read_all_sheets()
     df = sheets["Sales"].copy()
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed")
     df["amount"] = df["amount"].astype(float)
 
     cutoff = datetime.now() - timedelta(days=days)

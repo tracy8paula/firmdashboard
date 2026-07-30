@@ -36,8 +36,8 @@
         <tr>
           <th class="px-4 py-2">Item</th>
           <th class="px-4 py-2">Client</th>
-          <th class="px-18 py-2">Date supplied</th>
-          <th class="px-6 py-2">Warranty</th>
+          <th class="px-22 py-2">Date supplied</th>
+          <th class="px-10 py-2">Warranty</th>
           <th class="px-4 py-2">Next due</th>
           <th class="px-4 py-2">Assigned engineer</th>
           <th class="px-4 py-2">Action</th>
@@ -45,17 +45,18 @@
       </thead>
       <tbody>
         {% for m in maintenance %}
-        <tr class="border-t border-slate-100 {% if m.due_soon %}bg-amber-50{% endif %} {% if m.overdue %}bg-red-50{% endif %}">
+        <tr
+          class="border-t border-slate-100 {% if m.due_soon %}bg-amber-50{% endif %} {% if m.overdue %}bg-red-50{% endif %}">
           <td class="px-4 py-2">{{ m.item }}</td>
           <td class="px-3 py-2">{{ m.client }}</td>
-          <td class="px-4 py-2">{{ m.date_supplied }}</td>
-          <td class="px-2 py-2">
+          <td class="px-1 py-1">{{ m.date_supplied }}</td>
+          <td class="px-1 py-1">
             {% if m.warranty_valid %}
-              <span class="text-xs text-green-800 px-0.5 py-0.5">Valid until {{ m.warranty_end_date }}</span>
+            <span class="text-xs text-green-800 px-0.5 py-0.5">Valid until {{ m.warranty_end_date }}</span>
             {% elif m.warranty_valid == false %}
-              <span class="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs">Expired {{ m.warranty_end_date }}</span>
+            <span class="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs">Expired {{ m.warranty_end_date }}</span>
             {% else %}
-              <span class="text-slate-400 text-xs">—</span>
+            <span class="text-slate-400 text-xs">—</span>
             {% endif %}
           </td>
           <td class="px-4 py-2 font-medium">
@@ -65,15 +66,21 @@
           </td>
           <td class="px-4 py-2">
             <form method="POST" action="{{ url_for('reassign_engineer', maintenance_id=m.id) }}">
-              <select name="technician" onchange="this.form.submit()" class="border border-slate-300 rounded text-xs px-1 py-1">
+              <select name="technician" onchange="this.form.submit()"
+                class="border border-slate-300 rounded text-xs px-1 py-1">
                 {% for eng in engineers %}
-                <option value="{{ eng }}" {% if m.technician == eng %}selected{% endif %}>{{ eng }}</option>
+                <option value="{{ eng }}" {% if m.technician==eng %}selected{% endif %}>{{ eng }}</option>
                 {% endfor %}
               </select>
             </form>
           </td>
-          <td class="text-xs text-slate-600 px-1 py-2 hover:bg-slate-200">
-            <a href="{{ url_for('service_maintenance', maintenance_id=m.id) }}">Complete service</a>
+          <td class="px-2 py-2">
+            {% if m.overdue or m.due_soon %}
+            <a href="{{ url_for('service_maintenance', maintenance_id=m.id) }}"
+              class="text-xs bg-slate-700 text-white rounded px-2 py-1 hover:bg-slate-500">Complete service</a>
+            {% else %}
+            <span class="text-xs text-slate-400">Not due yet ({{ m.days_remaining }}d)</span>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -112,16 +119,21 @@
             </span>
           </td>
           <td class="px-4 py-2">
+            {% if c.status != 'Resolved' %}
             <form method="POST" action="{{ url_for('update_complaint', complaint_id=c.id) }}" class="space-y-1">
               <select name="status" class="border border-slate-300 rounded text-xs px-1 py-1 w-full">
                 {% for s in ['Open', 'In Progress', 'Resolved'] %}
-                <option value="{{ s }}" {% if c.status == s %}selected{% endif %}>{{ s }}</option>
+                <option value="{{ s }}" {% if c.status==s %}selected{% endif %}>{{ s }}</option>
                 {% endfor %}
               </select>
               <input name="resolution_notes" value="{{ c.resolution_notes }}" placeholder="Resolution notes"
-                     class="border border-slate-300 rounded text-xs px-1 py-1 w-full">
-              <button type="submit" class="w-full bg-slate-600 text-white rounded text-xs py-1 hover:bg-slate-800">Save</button>
+                class="border border-slate-300 rounded text-xs px-1 py-1 w-full">
+              <button type="submit"
+                class="w-full bg-slate-600 text-white rounded text-xs py-1 hover:bg-slate-800">Save</button>
             </form>
+            {% else %}
+            <span class="text-xs text-slate-400">Resolved — locked</span>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

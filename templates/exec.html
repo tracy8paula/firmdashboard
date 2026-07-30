@@ -5,104 +5,152 @@
 <div class="flex min-h-screen">
 
   <div class="flex-1 flex flex-col min-w-0">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
-              <svg class="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m9-8a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m9-8a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <div class="text-medium text-slate-400 mb-1">Total revenue</div>
-          <div class="text-2xl font-bold text-slate-900">ugx {{ "{:,.0f}".format(summary.total_revenue) }}</div>
         </div>
-
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
-              <svg class="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-            </div>
-          </div>
-          <div class="text-medium text-slate-400 mb-1">Open complaints</div>
-          <div class="text-2xl font-bold text-slate-900">{{ summary.open_complaints }}</div>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center">
-              <svg class="w-8 h-8 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-          </div>
-          <div class="text-medium  text-slate-400 mb-1">Maintenance due (7d)</div>
-          <div class="text-2xl font-bold text-slate-900">{{ summary.maintenance_due_7d }}</div>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <svg class="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-            </div>
-          </div>
-          <div class="text-medium text-slate-400 mb-1">Low stock items</div>
-          <div class="text-2xl font-bold text-slate-900">{{ summary.low_stock_count }}</div>
-        </div>
+        <div class="text-medium text-slate-400 mb-1">Total revenue</div>
+        <div class="text-2xl font-bold text-slate-900">ugx {{ "{:,.0f}".format(summary.total_revenue) }}</div>
       </div>
 
-      <div class="grid lg:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h3 class="text-sm font-semibold text-slate-700 mb-3">Top Selling Products</h3>
-          <canvas id="topProductsChart" height="200"></canvas>
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h3 class="text-sm font-semibold text-slate-700 mb-3">Revenue Trend</h3>
-          <canvas id="revenueTrendChart" height="200"></canvas>
+        <div class="text-medium text-slate-400 mb-1">Open complaints</div>
+        <div class="text-2xl font-bold text-slate-900">{{ summary.open_complaints }}</div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h3 class="text-sm font-semibold text-slate-700 mb-3">Complaints by Status</h3>
-          <div class="relative">
-            <canvas id="complaintsChart" height="200"></canvas>
-            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div class="text-xl font-bold text-slate-900">{{ summary.open_complaints + complaints_by_status.get('Resolved', 0) }}</div>
-              <div class="text-[11px] text-slate-400">Total</div>
-            </div>
+        <div class="text-medium  text-slate-400 mb-1">Maintenance due (7d)</div>
+        <div class="text-2xl font-bold text-slate-900">{{ summary.maintenance_due_7d }}</div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+        </div>
+        <div class="text-medium text-slate-400 mb-1">Low stock items</div>
+        <div class="text-2xl font-bold text-slate-900">{{ summary.low_stock_count }}</div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Top Selling Products</h3>
+        <canvas id="topProductsChart" height="200"></canvas>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Revenue Trend</h3>
+        <canvas id="revenueTrendChart" height="200"></canvas>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Complaints by Status</h3>
+        <div class="relative">
+          <canvas id="complaintsChart" height="200"></canvas>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div class="text-xl font-bold text-slate-900">{{ summary.open_complaints +
+              complaints_by_status.get('Resolved', 0) }}</div>
+            <div class="text-[11px] text-slate-400">Total</div>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100">
-          <h3 class="text-medium font-semibold text-slate-700">Recent Activity</h3>
-        </div>
-        <table class="w-full text-sm">
-          <thead class="text-slate-400 text-left">
-            <tr>
-              <th class="px-5 py-2 font-medium">Date</th>
-              <th class="px-5 py-2 font-medium">Description</th>
-              <th class="px-5 py-2 font-medium">Type</th>
-              <th class="px-5 py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for a in recent_activity %}
-            <tr class="border-t border-slate-50">
-              <td class="px-5 py-3 text-slate-500">{{ a.date }}</td>
-              <td class="px-5 py-3 text-slate-900">{{ a.description }}</td>
-              <td class="px-5 py-3 text-slate-500">{{ a.type }}</td>
-              <td class="px-5 py-3">
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+      <div class="px-5 py-4 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700">Technical Service Reports</h3>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-slate-400 text-left">
+          <tr>
+            <th class="px-5 py-2 font-medium">Date</th>
+            <th class="px-5 py-2 font-medium">Item</th>
+            <th class="px-5 py-2 font-medium">Client</th>
+            <th class="px-5 py-2 font-medium">Engineer</th>
+            <th class="px-5 py-2 font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in service_reports %}
+          <tr class="border-t border-slate-50">
+            <td class="px-5 py-3 text-slate-500">{{ r.date_completed }}</td>
+            <td class="px-5 py-3 text-slate-900">{{ r.item }}</td>
+            <td class="px-5 py-3 text-slate-500">{{ r.client }}</td>
+            <td class="px-5 py-3 text-slate-500">{{ r.engineer_assigned }}</td>
+            <td class="px-5 py-3 text-right">
+              <a href="{{ url_for('view_service_report', report_id=r.id) }}"
+                class="text-xs font-medium text-indigo-600 hover:text-indigo-800">View report →</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-5 py-6 text-center text-slate-400 text-sm">No service reports yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100">
+        <h3 class="text-medium font-semibold text-slate-700">Recent Activity</h3>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-slate-400 text-left">
+          <tr>
+            <th class="px-5 py-2 font-medium">Date</th>
+            <th class="px-5 py-2 font-medium">Description</th>
+            <th class="px-5 py-2 font-medium">Type</th>
+            <th class="px-5 py-2 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in recent_activity %}
+          <tr class="border-t border-slate-50">
+            <td class="px-5 py-3 text-slate-500">{{ a.date }}</td>
+            <td class="px-5 py-3 text-slate-900">{{ a.description }}</td>
+            <td class="px-5 py-3 text-slate-500">{{ a.type }}</td>
+            <td class="px-5 py-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium
                   {% if a.status == 'Resolved' %}bg-emerald-50 text-emerald-600
                   {% elif a.status == 'In Progress' %}bg-amber-50 text-amber-600
                   {% elif a.status == 'Completed' %}bg-indigo-50 text-indigo-600
                   {% else %}bg-slate-100 text-slate-500{% endif %}">
-                  {{ a.status }}
-                </span>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+                {{ a.status }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 </div>
 
 {% endblock %}
