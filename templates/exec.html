@@ -1,166 +1,172 @@
-{% extends "base.html" %}
+{% extends "exec_base.html" %}
 {% block title %}Executive Dashboard{% endblock %}
 {% block content %}
-
 <div class="flex min-h-screen">
 
   <div class="flex-1 flex flex-col min-w-0">
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m9-8a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
+
+    <div class="p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-slate-700">Executive Dashboard</h1>
+        <div class="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+          <button data-range="week" class="range-btn px-3 py-1.5 text-xs rounded-md font-medium">Week</button>
+          <button data-range="month" class="range-btn px-3 py-1.5 text-xs rounded-md font-medium">Month</button>
+          <button data-range="6months" class="range-btn px-3 py-1.5 text-xs rounded-md font-medium">6 Months</button>
         </div>
-        <div class="text-medium text-slate-400 mb-1">Total revenue</div>
-        <div class="text-2xl font-bold text-slate-900">ugx {{ "{:,.0f}".format(summary.total_revenue) }}</div>
       </div>
 
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-          </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div class="text-xs text-slate-400 mb-1">Total revenue</div>
+          <div class="text-2xl font-bold text-slate-900">ugx {{ "{:,.0f}".format(summary.total_revenue) }}</div>
         </div>
-        <div class="text-medium text-slate-400 mb-1">Open complaints</div>
-        <div class="text-2xl font-bold text-slate-900">{{ summary.open_complaints }}</div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div class="text-xs text-slate-400 mb-1">Open complaints</div>
+          <div class="text-2xl font-bold text-slate-900">{{ summary.open_complaints }}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div class="text-xs text-slate-400 mb-1">Maintenance due (2wk)</div>
+          <div class="text-2xl font-bold text-slate-900">{{ summary.maintenance_due_7d }}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div class="text-xs text-slate-400 mb-1">Low stock items</div>
+          <div class="text-2xl font-bold text-slate-900">{{ summary.low_stock_count }}</div>
+        </div>
       </div>
 
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
+      <div class="grid lg:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">Top Selling Products</h3>
+          <canvas id="topProductsChart" height="200"></canvas>
         </div>
-        <div class="text-medium  text-slate-400 mb-1">Maintenance due (7d)</div>
-        <div class="text-2xl font-bold text-slate-900">{{ summary.maintenance_due_7d }}</div>
-      </div>
-
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-              stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">Revenue Trend</h3>
+          <canvas id="revenueTrendChart" height="200"></canvas>
         </div>
-        <div class="text-medium text-slate-400 mb-1">Low stock items</div>
-        <div class="text-2xl font-bold text-slate-900">{{ summary.low_stock_count }}</div>
-      </div>
-    </div>
-
-    <div class="grid lg:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <h3 class="text-sm font-semibold text-slate-700 mb-3">Top Selling Products</h3>
-        <canvas id="topProductsChart" height="200"></canvas>
-      </div>
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <h3 class="text-sm font-semibold text-slate-700 mb-3">Revenue Trend</h3>
-        <canvas id="revenueTrendChart" height="200"></canvas>
-      </div>
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <h3 class="text-sm font-semibold text-slate-700 mb-3">Complaints by Status</h3>
-        <div class="relative">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">Complaints by Status</h3>
           <canvas id="complaintsChart" height="200"></canvas>
-          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <div class="text-xl font-bold text-slate-900">{{ summary.open_complaints +
-              complaints_by_status.get('Resolved', 0) }}</div>
-            <div class="text-[11px] text-slate-400">Total</div>
-          </div>
         </div>
       </div>
-    </div>
 
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-      <div class="px-5 py-4 border-b border-slate-100">
-        <h3 class="text-sm font-semibold text-slate-700">Technical Service Reports</h3>
+      <div class="grid lg:grid-cols-2 gap-4 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-700">Revenue by Stream</h3>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              {% for r in revenue_streams %}
+              <tr class="border-t border-slate-50">
+                <td class="px-5 py-2 text-slate-900">{{ r.payment_stream }}</td>
+                <td class="px-5 py-2 text-right text-slate-500">ugx {{ "{:,.0f}".format(r.revenue) }}</td>
+              </tr>
+              {% else %}<tr>
+                <td class="px-5 py-4 text-center text-slate-400">No sales yet.</td>
+              </tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-700">Maintenance Due Soon — Assigned To</h3>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-slate-400 text-left">
+              <tr>
+                <th class="px-5 py-2 font-medium">Item</th>
+                <th class="px-5 py-2 font-medium">Client</th>
+                <th class="px-5 py-2 font-medium">Due</th>
+                <th class="px-5 py-2 font-medium">Engineer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in maintenance_due_soon %}
+              <tr class="border-t border-slate-50">
+                <td class="px-5 py-2">{{ m.item }}</td>
+                <td class="px-5 py-2 text-slate-500">{{ m.client }}</td>
+                <td class="px-5 py-2 {% if m.overdue %}text-red-600{% else %}text-amber-600{% endif %}">{{
+                  m.next_due_date }}</td>
+                <td class="px-5 py-2 text-slate-500">{{ m.technician or "Unassigned" }}</td>
+              </tr>
+              {% else %}<tr>
+                <td colspan="4" class="px-5 py-4 text-center text-slate-400">Nothing due soon.</td>
+              </tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-slate-400 text-left">
-          <tr>
-            <th class="px-5 py-2 font-medium">Date</th>
-            <th class="px-5 py-2 font-medium">Item</th>
-            <th class="px-5 py-2 font-medium">Client</th>
-            <th class="px-5 py-2 font-medium">Engineer</th>
-            <th class="px-5 py-2 font-medium"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in service_reports %}
-          <tr class="border-t border-slate-50">
-            <td class="px-5 py-3 text-slate-500">{{ r.date_completed }}</td>
-            <td class="px-5 py-3 text-slate-900">{{ r.item }}</td>
-            <td class="px-5 py-3 text-slate-500">{{ r.client }}</td>
-            <td class="px-5 py-3 text-slate-500">{{ r.engineer_assigned }}</td>
-            <td class="px-5 py-3 text-right">
-              <a href="{{ url_for('view_service_report', report_id=r.id) }}"
-                class="text-xs font-medium text-indigo-600 hover:text-indigo-800">View report →</a>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="px-5 py-6 text-center text-slate-400 text-sm">No service reports yet.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
 
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100">
-        <h3 class="text-medium font-semibold text-slate-700">Recent Activity</h3>
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h3 class="text-sm font-semibold text-slate-700">Technical Service Reports</h3>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="text-slate-400 text-left">
+            <tr>
+              <th class="px-5 py-2 font-medium">Date</th>
+              <th class="px-5 py-2 font-medium">Item</th>
+              <th class="px-5 py-2 font-medium">Client</th>
+              <th class="px-5 py-2 font-medium">Engineer</th>
+              <th class="px-5 py-2 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in service_reports %}
+            <tr class="border-t border-slate-50">
+              <td class="px-5 py-3 text-slate-500">{{ r.date_completed }}</td>
+              <td class="px-5 py-3">{{ r.item }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ r.client }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ r.engineer_assigned }}</td>
+              <td class="px-5 py-3 text-right"><a href="{{ url_for('view_service_report', report_id=r.id) }}"
+                  class="text-xs font-medium text-indigo-600">View report →</a></td>
+            </tr>
+            {% else %}<tr>
+              <td colspan="5" class="px-5 py-6 text-center text-slate-400 text-sm">No service reports yet.</td>
+            </tr>{% endfor %}
+          </tbody>
+        </table>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-slate-400 text-left">
-          <tr>
-            <th class="px-5 py-2 font-medium">Date</th>
-            <th class="px-5 py-2 font-medium">Description</th>
-            <th class="px-5 py-2 font-medium">Type</th>
-            <th class="px-5 py-2 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for a in recent_activity %}
-          <tr class="border-t border-slate-50">
-            <td class="px-5 py-3 text-slate-500">{{ a.date }}</td>
-            <td class="px-5 py-3 text-slate-900">{{ a.description }}</td>
-            <td class="px-5 py-3 text-slate-500">{{ a.type }}</td>
-            <td class="px-5 py-3">
-              <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                  {% if a.status == 'Resolved' %}bg-emerald-50 text-emerald-600
-                  {% elif a.status == 'In Progress' %}bg-amber-50 text-amber-600
-                  {% elif a.status == 'Completed' %}bg-indigo-50 text-indigo-600
-                  {% else %}bg-slate-100 text-slate-500{% endif %}">
-                {{ a.status }}
-              </span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h3 class="text-sm font-semibold text-slate-700">Recent Activity</h3>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="text-slate-400 text-left">
+            <tr>
+              <th class="px-5 py-2 font-medium">Date</th>
+              <th class="px-5 py-2 font-medium">Description</th>
+              <th class="px-5 py-2 font-medium">Type</th>
+              <th class="px-5 py-2 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in recent_activity %}
+            <tr class="border-t border-slate-50">
+              <td class="px-5 py-3 text-slate-500">{{ a.date }}</td>
+              <td class="px-5 py-3">{{ a.description }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ a.type }}</td>
+              <td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium
+            {% if a.status == 'Resolved' %}bg-emerald-50 text-emerald-600
+            {% elif a.status == 'In Progress' %}bg-amber-50 text-amber-600
+            {% elif a.status == 'Completed' %}bg-indigo-50 text-indigo-600
+            {% else %}bg-slate-100 text-slate-500{% endif %}">{{ a.status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
   const complaintsData = {{ complaints_by_status | tojson }};
-  let pieChart, lineChart, complaintsChart;
+  let barChart, lineChart;
 
   function setActiveButton(range) {
     document.querySelectorAll(".range-btn").forEach((btn) => {
@@ -175,50 +181,35 @@
     setActiveButton(range);
     const res = await fetch(`/api/analytics?range=${range}`);
     const data = await res.json();
-
     const productLabels = data.top_products.map((p) => p.item);
     const productValues = data.top_products.map((p) => p.revenue);
     const trendLabels = data.trend.map((t) => t.label);
     const trendValues = data.trend.map((t) => t.revenue);
 
-    if (!pieChart) {
-      pieChart = new Chart(document.getElementById("topProductsChart"), {
+    if (!barChart) {
+      barChart = new Chart(document.getElementById("topProductsChart"), {
         type: "bar",
         data: { labels: productLabels, datasets: [{ data: productValues, backgroundColor: "#6366f1", borderRadius: 6 }] },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+        options: { plugins: { legend: { display: false } } },
       });
       lineChart = new Chart(document.getElementById("revenueTrendChart"), {
         type: "line",
-        data: { labels: trendLabels, datasets: [{ label: "Revenue", data: trendValues, borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,0.1)", fill: true, tension: 0.35 }] },
+        data: { labels: trendLabels, datasets: [{ data: trendValues, borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,0.1)", fill: true, tension: 0.35 }] },
         options: { plugins: { legend: { display: false } } },
       });
     } else {
-      pieChart.data.labels = productLabels;
-      pieChart.data.datasets[0].data = productValues;
-      pieChart.update();
-      lineChart.data.labels = trendLabels;
-      lineChart.data.datasets[0].data = trendValues;
-      lineChart.update();
+      barChart.data.labels = productLabels; barChart.data.datasets[0].data = productValues; barChart.update();
+      lineChart.data.labels = trendLabels; lineChart.data.datasets[0].data = trendValues; lineChart.update();
     }
   }
 
-  complaintsChart = new Chart(document.getElementById("complaintsChart"), {
+  new Chart(document.getElementById("complaintsChart"), {
     type: "doughnut",
-    data: {
-      labels: Object.keys(complaintsData),
-      datasets: [{
-        data: Object.values(complaintsData),
-        backgroundColor: ["#f43f5e", "#f59e0b", "#10b981"],
-        borderWidth: 0,
-      }],
-    },
-    options: { cutout: "72%", plugins: { legend: { position: "bottom", labels: { boxWidth: 8, font: { size: 11 } } } } },
+    data: { labels: Object.keys(complaintsData), datasets: [{ data: Object.values(complaintsData), backgroundColor: ["#f43f5e", "#f59e0b", "#10b981"], borderWidth: 0 }] },
+    options: { cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 8, font: { size: 11 } } } } },
   });
 
-  document.querySelectorAll(".range-btn").forEach((btn) => {
-    btn.addEventListener("click", () => loadAnalytics(btn.dataset.range));
-  });
-
+  document.querySelectorAll(".range-btn").forEach((btn) => btn.addEventListener("click", () => loadAnalytics(btn.dataset.range)));
   loadAnalytics("week");
 </script>
 {% endblock %}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thank you</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-slate-50 min-h-screen p-6">
+<div class="max-w-lg mx-auto bg-white rounded border border-slate-200 p-6 mt-8 text-center">
+  <h1 class="text-xl font-semibold mb-2">Thanks — we've got it</h1>
+  <p class="text-sm text-slate-500 mb-6">Your issue has been logged and our team will follow up.</p>
+  {% if call_requested %}
+    {% if contact %}
+    <div class="bg-slate-50 border border-slate-200 rounded p-4">
+      <p class="text-sm text-slate-600 mb-2">You can also reach {{ contact.role|lower }} directly:</p>
+      <p class="font-medium">{{ contact.name }}</p>
+      <a href="tel:{{ contact.phone }}" class="inline-block mt-2 bg-slate-900 text-white rounded px-4 py-2 text-sm">Call {{ contact.phone }}</a>
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-500">We don't have a direct contact on file for this item yet — our team will call you instead.</p>
+    {% endif %}
+  {% endif %}
+</div>
+</body></html>

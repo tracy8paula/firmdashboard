@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}HR{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">HR — Staff Directory &amp; Performance</h1>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Staff</h2>
+  <div class="bg-white rounded border border-slate-200 overflow-hidden mb-4">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Name</th><th class="px-3 py-2">Role</th><th class="px-3 py-2">Phone</th><th class="px-3 py-2">Email</th><th class="px-3 py-2">Joined</th></tr></thead>
+      <tbody>
+      {% for s in staff %}
+      <tr class="border-t"><td class="px-3 py-2">{{ s.name }}</td><td class="px-3 py-2">{{ s.role }}</td><td class="px-3 py-2">{{ s.phone }}</td><td class="px-3 py-2">{{ s.email }}</td><td class="px-3 py-2">{{ s.date_joined }}</td></tr>
+      {% else %}
+      <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">No staff added yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <details class="bg-white rounded border border-slate-200 p-4">
+    <summary class="text-sm font-medium cursor-pointer">+ Add staff member</summary>
+    <form method="POST" action="{{ url_for('add_staff') }}" class="grid grid-cols-3 gap-3 mt-3">
+      <input name="name" placeholder="Full name" required class="border rounded px-2 py-1 text-sm">
+      <select name="role" class="border rounded px-2 py-1 text-sm">
+        <option value="Engineer">Engineer</option><option value="Sales">Sales</option><option value="Other">Other</option>
+      </select>
+      <input name="phone" placeholder="Phone (for call requests)" class="border rounded px-2 py-1 text-sm">
+      <input name="email" placeholder="Email" class="border rounded px-2 py-1 text-sm">
+      <input name="date_joined" type="date" class="border rounded px-2 py-1 text-sm">
+      <button type="submit" class="bg-slate-900 text-white rounded px-3 py-1 text-sm">Add</button>
+    </form>
+  </details>
+</section>
+
+<div class="grid md:grid-cols-2 gap-6">
+  <section>
+    <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Sales performance</h2>
+    <div class="bg-white rounded border border-slate-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Rep</th><th class="px-3 py-2">Revenue</th></tr></thead>
+        <tbody>
+        {% for p in sales_performance %}
+        <tr class="border-t"><td class="px-3 py-2">{{ p.name }}</td><td class="px-3 py-2">ugx {{ "{:,.0f}".format(p.revenue) }}</td></tr>
+        {% else %}<tr><td colspan="2" class="px-3 py-4 text-center text-slate-400">No sales recorded yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Service performance</h2>
+    <div class="bg-white rounded border border-slate-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Engineer</th><th class="px-3 py-2">Services completed</th></tr></thead>
+        <tbody>
+        {% for p in service_performance %}
+        <tr class="border-t"><td class="px-3 py-2">{{ p.name }}</td><td class="px-3 py-2">{{ p.services_completed }}</td></tr>
+        {% else %}<tr><td colspan="2" class="px-3 py-4 text-center text-slate-400">No services logged yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

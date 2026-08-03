@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">Inventory</h1>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Items</h2>
+  <div class="bg-white rounded border border-slate-200 overflow-hidden mb-4">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-left">
+        <tr><th class="px-3 py-2">Name</th><th class="px-3 py-2">Location</th><th class="px-3 py-2">Stock</th>
+        <th class="px-3 py-2">Price</th><th class="px-3 py-2">Threshold</th><th class="px-3 py-2">Supplier</th><th class="px-3 py-2">Save</th></tr>
+      </thead>
+      <tbody>
+      {% for item in items %}
+      <tr class="border-t {% if item.low_stock %}bg-red-50{% endif %}">
+        <form method="POST" action="{{ url_for('update_item', item_id=item.id) }}">
+        <td class="px-3 py-2">{{ item.name }}</td>
+        <td class="px-3 py-2">{{ item.location }}</td>
+        <td class="px-3 py-2 {% if item.low_stock %}text-red-600 font-medium{% endif %}">{{ item.stock }}</td>
+        <td class="px-3 py-2"><input name="price" value="{{ item.price }}" class="w-20 border rounded px-1 py-0.5 text-xs"></td>
+        <td class="px-3 py-2"><input name="low_stock_threshold" value="{{ item.low_stock_threshold }}" class="w-14 border rounded px-1 py-0.5 text-xs"></td>
+        <td class="px-3 py-2 flex gap-1">
+          <input name="preferred_supplier" value="{{ item.preferred_supplier }}" placeholder="Supplier" class="w-24 border rounded px-1 py-0.5 text-xs">
+          <input name="supplier_contact" value="{{ item.supplier_contact }}" placeholder="Contact" class="w-24 border rounded px-1 py-0.5 text-xs">
+        </td>
+        <td class="px-3 py-2"><button type="submit" class="text-xs bg-slate-900 text-white rounded px-2 py-1">Save</button></td>
+        </form>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <details class="bg-white rounded border border-slate-200 p-4">
+    <summary class="text-sm font-medium cursor-pointer">+ Add new item</summary>
+    <form method="POST" action="{{ url_for('add_item') }}" class="grid grid-cols-3 gap-3 mt-3">
+      <input name="name" placeholder="Name" required class="border rounded px-2 py-1 text-sm">
+      <input name="location" placeholder="Location" class="border rounded px-2 py-1 text-sm">
+      <input name="stock" type="number" placeholder="Stock" class="border rounded px-2 py-1 text-sm">
+      <input name="price" type="number" step="0.01" placeholder="Price" class="border rounded px-2 py-1 text-sm">
+      <input name="low_stock_threshold" type="number" placeholder="Low stock threshold (default 5)" class="border rounded px-2 py-1 text-sm">
+      <button type="submit" class="bg-slate-900 text-white rounded px-3 py-1 text-sm">Add</button>
+    </form>
+  </details>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Depleting Stock &amp; Suppliers</h2>
+  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Item</th><th class="px-3 py-2">Stock</th><th class="px-3 py-2">Threshold</th><th class="px-3 py-2">Supplier</th><th class="px-3 py-2">Contact</th></tr></thead>
+      <tbody>
+      {% for item in low_stock_items %}
+      <tr class="border-t"><td class="px-3 py-2">{{ item.name }}</td><td class="px-3 py-2 text-red-600">{{ item.stock }}</td>
+      <td class="px-3 py-2">{{ item.low_stock_threshold }}</td><td class="px-3 py-2">{{ item.preferred_supplier or "—" }}</td><td class="px-3 py-2">{{ item.supplier_contact or "—" }}</td></tr>
+      {% else %}
+      <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">Nothing low on stock.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Spare Parts Log</h2>
+  <div class="bg-white rounded border border-slate-200 p-4 mb-4">
+    <form method="POST" action="{{ url_for('log_spare_part') }}" class="grid grid-cols-3 gap-3">
+      <input name="part_name" placeholder="Part name" required class="border rounded px-2 py-1 text-sm">
+      <input name="serial_number" placeholder="Serial number" class="border rounded px-2 py-1 text-sm">
+      <input name="date_moved" type="date" class="border rounded px-2 py-1 text-sm">
+      <input name="removed_from_item" placeholder="Removed from (device)" class="border rounded px-2 py-1 text-sm">
+      <input name="installed_into_item" placeholder="Installed into (device)" class="border rounded px-2 py-1 text-sm">
+      <input name="notes" placeholder="Notes" class="border rounded px-2 py-1 text-sm">
+      <button type="submit" class="bg-slate-900 text-white rounded px-3 py-1 text-sm col-span-3">Log movement</button>
+    </form>
+  </div>
+  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Date</th><th class="px-3 py-2">Part</th><th class="px-3 py-2">Serial</th><th class="px-3 py-2">From</th><th class="px-3 py-2">To</th><th class="px-3 py-2">Logged by</th></tr></thead>
+      <tbody>
+      {% for sp in spare_parts %}
+      <tr class="border-t"><td class="px-3 py-2">{{ sp.date_moved }}</td><td class="px-3 py-2">{{ sp.part_name }}</td><td class="px-3 py-2">{{ sp.serial_number }}</td><td class="px-3 py-2">{{ sp.removed_from_item }}</td><td class="px-3 py-2">{{ sp.installed_into_item }}</td><td class="px-3 py-2">{{ sp.logged_by }}</td></tr>
+      {% else %}
+      <tr><td colspan="6" class="px-3 py-4 text-center text-slate-400">No spare part movements logged yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

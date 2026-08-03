@@ -2,40 +2,44 @@
 {% block title %}Firm Medical Dashboard{% endblock %}
 {% block content %}
 
-<div class="relative min-h-screen"> 
+<div class="relative min-h-screen">
 
-  <img src="{{ url_for('static', filename='images/arm_medical.jpg') }}"
-       alt=""
-       class="absolute inset-0 w-full h-full object-cover -z-10">
-  <div class="absolute inset-0 -z-10"></div>
+    <img src="{{ url_for('static', filename='images/arm_medical.jpg') }}" alt=""
+        class="absolute inset-0 w-full h-full object-cover -z-10">
+    <div class="absolute inset-0 -z-10"></div>
 
-  <div class="relative flex items-center justify-center min-h-screen px-6">
-    <div class="w-full max-w-md bg-white/50 backdrop-blur rounded-xl p-8 ring-1 ring-slate-200 shadow-sm">
-      <h1 class="text-3xl font-bold darkblue text-slate-900 mb-4 relative flex justify-center">Firm Medical Dashboard</h1>
+    <div class="relative flex items-center justify-center min-h-screen px-6">
+        <div class="w-full max-w-md bg-white/50 backdrop-blur rounded-xl p-8 ring-1 ring-slate-200 shadow-sm">
+            <h1 class="text-3xl font-bold darkblue text-slate-900 mb-4 relative flex justify-center">Firm Medical
+                Dashboard</h1>
 
-      {% if error %}
-        <div class="mb-4 rounded bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm">{{ error }}</div>
-      {% endif %}
+            {% if error %}
+            <div class="mb-4 rounded bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm">{{ error }}</div>
+            {% endif %}
 
-      <form method="POST" class="space-y-4">
-        <div>
-          <label class="block text-xl font-medium darkblue text-slate-700 mb-1">Username</label>
-          <select name="username" required class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
-            <option value="" disabled selected>Select a dashboard</option>
-            <option value="sales">Sales</option>
-            <option value="engineer">Maintenance</option>
-            <option value="exec">Executive</option>
-          </select>
+            <form method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xl font-medium darkblue text-slate-700 mb-1">Username</label>
+                    <select name="username" required
+                        class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                        <option value="" disabled selected>Select a dashboard</option>
+                        <option value="sales">Sales</option>
+                        <option value="engineer">Maintenance</option>
+                        <option value="exec">Executive</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xl font-medium darkblue text-slate-700 mb-1">Password</label>
+                    <input name="password" type="password" required
+                        class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                </div>
+                <button type="submit"
+                    class="w-full bg-slate-900 text-white rounded py-2 text-xl font-normal hover:bg-slate-800">Sign
+                    in</button>
+            </form>
         </div>
-
-        <div>
-          <label class="block text-xl font-medium darkblue text-slate-700 mb-1">Password</label>
-          <input name="password" type="password" required class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
-        </div>
-        <button type="submit" class="w-full bg-slate-900 text-white rounded py-2 text-xl font-normal hover:bg-slate-800">Sign in</button>
-      </form>
     </div>
-  </div>
 
 </div>
 {% endblock %}
