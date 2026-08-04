@@ -1,11 +1,3 @@
-"""
-Login accounts (change before real use):
-    engineer / changeme1   >>>
-    sales    / changeme2
-    exec     / changeme3
-    hr       / changeme4
-"""
-
 import threading
 import uuid
 from datetime import datetime, timedelta
@@ -20,9 +12,8 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
-# ---------------------- CONFIG ----------------------
 
-EXCEL_PATH = Path(__file__).parent / "company_data.xlsx"
+mock_data = Path(__file__).parent / "data" / "company_data.xlsx"
 UPLOAD_DIR = Path(__file__).parent / "static" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -41,28 +32,27 @@ USERS = {
     "sales": {"password_hash": generate_password_hash("changeme1"), "role": "sales", "name": "Sales"},
     "engineer": {"password_hash": generate_password_hash("changeme2"), "role": "engineer", "name": "Maintenance"},
     "exec": {"password_hash": generate_password_hash("changeme3"), "role": "exec", "name": "Executive"},
-    "hr": {"password_hash": generate_password_hash("changeme4"), "role": "hr", "name": "HR"},
+    "hr": {"password_hash": generate_password_hash("changeme4"), "role": "hr", "name": "HumanResources"},
 }
 
 SHEET_COLUMNS = {
-    "Items": ["id", "name", "model_number","serial_number", "location", "status", "stock", "price", "low_stock_threshold", "preferred_supplier", "supplier_contact"],
+    "Items": ["id", "name", "model_number", "serial_number", "location", "status", "stock", "price", "low_stock_threshold", "preferred_supplier", "supplier_contact"],
     "Maintenance": ["id", "item", "serial_number", "client", "location", "date_supplied", "warranty_months", "last_service_date", "next_due_date", "technician"],
     "Complaints": ["id", "item", "model_number", "serial_number", "client", "contact_name", "phone", "date_opened", "issue_description", "status", "resolution_notes", "call_requested"],
-    "Sales": ["id", "item", "serial_number","client", "quantity", "list_price", "agreed_price", "salesperson", "payment_type", "payment_route", "payment_stream", "amount_paid", "balance", "balance_due_date", "sale_date", "service_interval", "type"],
-    "Installments": ["id", "sale_id", "installment_number", "due_date", "amount_due", "paid_date", "amount_paid", "status"],
+    "Sales": ["id", "item", "serial_number", "client", "quantity", "list_price", "agreed_price", "salesperson", "payment_route", "payment_stream", "amount_paid", "balance", "balance_due_date", "sale_date", "service_interval", "type"],
+    # Installments is now a running PAYMENT LOG, not a pre-scheduled plan.
+    "Installments": ["id", "sale_id", "payment_date", "amount_paid", "payment_stream", "balance_after"],
     "SpareParts": ["id", "part_name", "model_number", "serial_number", "removed_from_item", "installed_into_item", "date_moved", "logged_by", "notes"],
     "ServiceReports": ["id", "maintenance_id", "item", "client", "issue_reported", "engineer_assigned", "part_used", "part_qty", "date_completed", "notes", "scan_filename"],
     "Staff": ["id", "name", "role", "phone", "email", "date_joined"],
 }
-
-# ---------------------- EXCEL HELPERS ----------------------
 
 _lock = threading.Lock()
 
 
 def read_all_sheets() -> dict[str, pd.DataFrame]:
     with _lock:
-        sheets = pd.read_excel(EXCEL_PATH, sheet_name=None, dtype=str)
+        sheets = pd.read_excel(mock_data, sheet_name=None, dtype=str)
     for name, cols in SHEET_COLUMNS.items():
         if name not in sheets:
             sheets[name] = pd.DataFrame(columns=cols)
@@ -75,7 +65,7 @@ def read_all_sheets() -> dict[str, pd.DataFrame]:
 
 def write_all_sheets(sheets: dict[str, pd.DataFrame]) -> None:
     with _lock:
-        with pd.ExcelWriter(EXCEL_PATH, engine="openpyxl") as writer:
+        with pd.ExcelWriter(mock_data, engine="openpyxl") as writer:
             for name, df in sheets.items():
                 df.to_excel(writer, sheet_name=name, index=False)
 
@@ -91,8 +81,6 @@ def new_id(prefix: str) -> str:
 def parse_date(value):
     return pd.to_datetime(value, format="mixed").date()
 
-
-# ---------------------- DERIVED DATA ----------------------
 
 def get_items_with_flags(sheets) -> list[dict]:
     records = df_to_records(sheets["Items"])
@@ -122,7 +110,6 @@ def get_maintenance_with_flags(sheets) -> list[dict]:
         else:
             r["overdue"] = r["due_soon"] = False
             r["days_remaining"] = None
-
         if r.get("date_supplied"):
             supplied = pd.to_datetime(r["date_supplied"], format="mixed")
             warranty_months = int(r.get("warranty_months") or DEFAULT_WARRANTY_MONTHS)
@@ -142,29 +129,10 @@ def get_staff(sheets, role=None) -> list[dict]:
     return df_to_records(df)
 
 
-def get_installments_for_sale(sheets, sale_id) -> list[dict]:
+def get_payment_history(sheets, sale_id) -> list[dict]:
     df = sheets["Installments"]
-    return df_to_records(df[df["sale_id"] == sale_id].sort_values("installment_number"))
+    return df_to_records(df[df["sale_id"] == sale_id].sort_values("payment_date"))
 
-
-def recompute_sale_balance(sheets, sale_id):
-    sales_df = sheets["Sales"]
-    match = sales_df["id"] == sale_id
-    if not match.any():
-        return sheets
-    inst_df = sheets["Installments"]
-    sale_installments = inst_df[inst_df["sale_id"] == sale_id]
-    if len(sale_installments):
-        total_paid = sale_installments["amount_paid"].replace("", "0").astype(float).sum()
-        sales_df.loc[match, "amount_paid"] = str(total_paid)
-    agreed = float(sales_df.loc[match, "agreed_price"].iloc[0] or 0)
-    paid = float(sales_df.loc[match, "amount_paid"].iloc[0] or 0)
-    sales_df.loc[match, "balance"] = str(agreed - paid)
-    sheets["Sales"] = sales_df
-    return sheets
-
-
-# ---------------------- APP ----------------------
 
 app = Flask(__name__)
 app.secret_key = "change-this-to-a-random-string"
@@ -182,6 +150,7 @@ def login_required(role=None):
         return wrapped
     return decorator
 
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.route("/", methods=["GET"])
 def index():
@@ -226,7 +195,10 @@ def add_item():
     sheets = read_all_sheets()
     df = sheets["Items"]
     new_row = {
-        "id": new_id("I"), "name": request.form.get("name", ""), "location": request.form.get("location", ""),
+        "id": new_id("I"), "name": request.form.get("name", ""),
+        "model_number": request.form.get("model_number", ""),
+        "serial_number": request.form.get("serial_number", ""),
+        "location": request.form.get("location", ""),
         "status": request.form.get("status", "Available"), "stock": request.form.get("stock", "0"),
         "price": request.form.get("price", "0"),
         "low_stock_threshold": request.form.get("low_stock_threshold", str(DEFAULT_LOW_STOCK_THRESHOLD)),
@@ -262,6 +234,7 @@ def log_spare_part():
     df = sheets["SpareParts"]
     new_row = {
         "id": new_id("SP"), "part_name": request.form.get("part_name", ""),
+        "model_number": request.form.get("model_number", ""),
         "serial_number": request.form.get("serial_number", ""),
         "removed_from_item": request.form.get("removed_from_item", ""),
         "installed_into_item": request.form.get("installed_into_item", ""),
@@ -356,8 +329,9 @@ def service_maintenance(maintenance_id):
         new_sale = {
             "id": new_id("S"), "item": part_used, "client": record.get("client", ""),
             "quantity": str(part_qty), "list_price": "0", "agreed_price": "0",
-            "salesperson": "", "payment_type": "", "amount_paid": "0", "balance": "0",
-            "balance_due_date": "", "sale_date": date_completed, "service_interval": "", "type": "Maintenance",
+            "salesperson": "", "payment_route": "", "payment_stream": "",
+            "amount_paid": "0", "balance": "0", "balance_due_date": "",
+            "sale_date": date_completed, "service_interval": "", "type": "Maintenance",
         }
         sheets["Sales"] = pd.concat([sales_df, pd.DataFrame([new_sale])], ignore_index=True)
 
@@ -463,8 +437,14 @@ def sales_dashboard():
     sales_df = sales_df.sort_values("sale_date", ascending=False) if len(sales_df) else sales_df
     sales = df_to_records(sales_df)
     for s in sales:
-        s["installments"] = get_installments_for_sale(sheets, s["id"]) if s.get("payment_type") == "Installments" else []
-    return render_template("sales.html", items=get_items_with_flags(sheets), sales=sales, service_intervals=SERVICE_INTERVALS, today=datetime.now().strftime("%Y-%m-%d"))
+        s["payment_history"] = get_payment_history(sheets, s["id"])
+    return render_template(
+        "sales.html",
+        items=get_items_with_flags(sheets),
+        sales=sales,
+        service_intervals=SERVICE_INTERVALS,
+        today=datetime.now().strftime("%Y-%m-%d"),
+    )
 
 
 @app.route("/sales/log", methods=["POST"])
@@ -475,29 +455,29 @@ def log_sale():
 
     item_name = request.form.get("item", "")
     quantity = int(request.form.get("quantity", "1") or 1)
-    agreed_price = request.form.get("agreed_price", "0")
-    payment_type = request.form.get("payment_type", "Cash")
+    agreed_price = float(request.form.get("agreed_price", "0") or 0)
+    amount_paid = float(request.form.get("amount_paid", "0") or 0)
     payment_route = request.form.get("payment_route", "Lumpsum")
     payment_stream = request.form.get("payment_stream", "Bank Transfer")
     client = request.form.get("client", "")
     sale_date = request.form.get("sale_date", datetime.now().strftime("%Y-%m-%d"))
     service_interval = request.form.get("service_interval", "6_months")
+    balance_due_date = request.form.get("balance_due_date", "")
 
     items_df = sheets["Items"]
     item_match = items_df["name"] == item_name
     list_price = float(items_df.loc[item_match, "price"].iloc[0]) if item_match.any() else 0.0
 
-    amount_paid = agreed_price if payment_type == "Cash" else request.form.get("amount_paid", "0")
-
     sale_id = new_id("S")
-    balance = float(agreed_price or 0) - float(amount_paid or 0)
+    balance = round(agreed_price - amount_paid, 2)
 
     new_row = {
         "id": sale_id, "item": item_name, "client": client, "quantity": str(quantity),
-        "list_price": str(list_price), "agreed_price": agreed_price,
-        "salesperson": request.form.get("salesperson", ""), "payment_type": payment_type,
-        "amount_paid": amount_paid, "balance": str(balance),
-        "balance_due_date": request.form.get("balance_due_date", ""),
+        "list_price": str(list_price), "agreed_price": str(agreed_price),
+        "salesperson": request.form.get("salesperson", ""),
+        "payment_route": payment_route, "payment_stream": payment_stream,
+        "amount_paid": str(amount_paid), "balance": str(balance),
+        "balance_due_date": balance_due_date if balance > 0 else "",
         "sale_date": sale_date, "service_interval": service_interval, "type": "Sale",
     }
     sheets["Sales"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -507,21 +487,14 @@ def log_sale():
         items_df.loc[item_match, "stock"] = str(max(current_stock - quantity, 0))
         sheets["Items"] = items_df
 
-    if payment_type == "Installments":
-        num_installments = int(request.form.get("num_installments", "2") or 2)
-        remaining = float(agreed_price or 0) - float(amount_paid or 0)
-        per_installment = round(remaining / num_installments, 2) if num_installments else 0
+    if amount_paid > 0:
         inst_df = sheets["Installments"]
-        base_date = datetime.strptime(sale_date, "%Y-%m-%d")
-        new_installments = []
-        for n in range(1, num_installments + 1):
-            due = (base_date + pd.DateOffset(months=n)).strftime("%Y-%m-%d")
-            new_installments.append({
-                "id": new_id("INST"), "sale_id": sale_id, "installment_number": str(n),
-                "due_date": due, "amount_due": str(per_installment),
-                "paid_date": "", "amount_paid": "0", "status": "Pending",
-            })
-        sheets["Installments"] = pd.concat([inst_df, pd.DataFrame(new_installments)], ignore_index=True)
+        new_payment = {
+            "id": new_id("PMT"), "sale_id": sale_id, "payment_date": sale_date,
+            "amount_paid": str(amount_paid), "payment_stream": payment_stream,
+            "balance_after": str(balance),
+        }
+        sheets["Installments"] = pd.concat([inst_df, pd.DataFrame([new_payment])], ignore_index=True)
 
     interval_days = SERVICE_INTERVALS.get(service_interval, SERVICE_INTERVALS["6_months"])["days"]
     next_due = (datetime.strptime(sale_date, "%Y-%m-%d") + timedelta(days=interval_days)).strftime("%Y-%m-%d")
@@ -538,22 +511,44 @@ def log_sale():
     return redirect(url_for("sales_dashboard"))
 
 
-@app.route("/sales/installment/<installment_id>/pay", methods=["POST"])
+@app.route("/sales/<sale_id>/pay", methods=["GET", "POST"])
 @login_required(role="sales")
-def pay_installment(installment_id):
+def pay_sale(sale_id):
     sheets = read_all_sheets()
-    df = sheets["Installments"]
-    match = df["id"] == installment_id
-    if match.any():
-        df.loc[match, "paid_date"] = request.form.get("paid_date", datetime.now().strftime("%Y-%m-%d"))
-        df.loc[match, "amount_paid"] = request.form.get("amount_paid", "0")
-        df.loc[match, "status"] = "Paid"
-        sheets["Installments"] = df
-        sale_id = df.loc[match, "sale_id"].iloc[0]
-        sheets = recompute_sale_balance(sheets, sale_id)
+    sales_df = sheets["Sales"]
+    match = sales_df["id"] == sale_id
+    if not match.any():
+        flash("Sale not found.")
+        return redirect(url_for("sales_dashboard"))
+    sale = sales_df.fillna("")[match].iloc[0].to_dict()
+
+    if request.method == "POST":
+        amount_now = float(request.form.get("amount_paid", "0") or 0)
+        next_due_date = request.form.get("balance_due_date", "")
+        payment_stream = request.form.get("payment_stream", sale.get("payment_stream", ""))
+
+        new_amount_paid = float(sale["amount_paid"] or 0) + amount_now
+        new_balance = round(float(sale["agreed_price"] or 0) - new_amount_paid, 2)
+
+        sales_df.loc[match, "amount_paid"] = str(new_amount_paid)
+        sales_df.loc[match, "balance"] = str(new_balance)
+        sales_df.loc[match, "balance_due_date"] = next_due_date if new_balance > 0 else ""
+        sheets["Sales"] = sales_df
+
+        inst_df = sheets["Installments"]
+        new_payment = {
+            "id": new_id("PMT"), "sale_id": sale_id, "payment_date": datetime.now().strftime("%Y-%m-%d"),
+            "amount_paid": str(amount_now), "payment_stream": payment_stream,
+            "balance_after": str(new_balance),
+        }
+        sheets["Installments"] = pd.concat([inst_df, pd.DataFrame([new_payment])], ignore_index=True)
+
         write_all_sheets(sheets)
-        flash("Installment payment recorded.")
-    return redirect(url_for("sales_dashboard"))
+        flash("Payment recorded.")
+        return redirect(url_for("sales_dashboard"))
+
+    payment_history = get_payment_history(sheets, sale_id)
+    return render_template("pay_sale.html", sale=sale, payment_history=payment_history)
 
 
 @app.route("/exec")
@@ -581,6 +576,13 @@ def exec_dashboard():
         "Resolved": int(status_counts.get("Resolved", 0)),
     }
 
+    revenue_by_stream = (
+        client_sales_df.groupby("payment_stream")["agreed_price"].apply(lambda s: s.astype(float).sum()).sort_values(ascending=False)
+        if len(client_sales_df) else pd.Series(dtype=float)
+    )
+    
+    revenue_by_stream=[{"stream": s, "revenue": round(float(v), 2)} for s, v in revenue_by_stream.items()]
+
     revenue_by_item = (
         client_sales_df.groupby("item")["agreed_price"].apply(lambda s: s.astype(float).sum()).sort_values(ascending=False)
         if len(client_sales_df) else pd.Series(dtype=float)
@@ -605,9 +607,12 @@ def exec_dashboard():
             "total_revenue": total_revenue, "open_complaints": open_complaints,
             "maintenance_due_7d": len(maintenance_due_soon), "low_stock_count": low_stock_count,
         },
-        complaints_by_status=complaints_by_status, recent_activity=activity[:8],
-        service_reports=service_reports, revenue_streams=revenue_streams,
-        maintenance_due_soon=maintenance_due_soon, exec_name=session.get("name", "Executive"),
+        complaints_by_status=complaints_by_status, 
+        recent_activity=activity[:8],
+        service_reports=service_reports, 
+        revenue_by_stream=revenue_by_stream,
+        revenue_streams=revenue_streams,
+        maintenance_due_soon=maintenance_due_soon,
     )
 
 
@@ -623,11 +628,11 @@ def analytics():
     if not len(df):
         return jsonify({"top_products": [], "trend": []})
 
-    df["date"] = pd.to_datetime(df["date"], format="mixed")
+    df["sale_date"] = pd.to_datetime(df["sale_date"], format="mixed")
     df["agreed_price"] = df["agreed_price"].astype(float)
 
     cutoff = datetime.now() - timedelta(days=days)
-    df = df[df["date"] >= cutoff].sort_values("date")
+    df = df[df["sale_date"] >= cutoff].sort_values("sale_date")
 
     top = df.groupby("item")["agreed_price"].sum().sort_values(ascending=False).head(5)
     top_products = [{"item": i, "revenue": round(float(v), 2)} for i, v in top.items()]
@@ -636,15 +641,15 @@ def analytics():
         return jsonify({"top_products": top_products, "trend": []})
 
     if range_key == "week":
-        bucket_key = df["date"].dt.strftime("%Y-%m-%d")
+        bucket_key = df["sale_date"].dt.strftime("%Y-%m-%d")
         label_fmt = lambda k: datetime.strptime(k, "%Y-%m-%d").strftime("%a %d")
     elif range_key == "month":
-        periods = df["date"].dt.to_period("W")
+        periods = df["sale_date"].dt.to_period("W")
         bucket_key = periods.astype(str)
         label_lookup = {str(p): p.start_time.strftime("Week of %b %d") for p in periods.unique()}
         label_fmt = lambda k: label_lookup[k]
     else:
-        bucket_key = df["date"].dt.strftime("%Y-%m")
+        bucket_key = df["sale_date"].dt.strftime("%Y-%m")
         label_fmt = lambda k: datetime.strptime(k, "%Y-%m").strftime("%b %Y")
 
     trend_series = df.groupby(bucket_key)["agreed_price"].sum().sort_index()

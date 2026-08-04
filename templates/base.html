@@ -10,8 +10,8 @@
 
 <body class="bg-slate-50 min-h-screen">
   {% if session.get('role') %}
-  <nav class="bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-6">
+  <nav class="bg-slate-600 text-white px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-4">
       <span class="font-semibold">Firm Medical Dashboard</span>
       {% if session.get('role') == 'engineer' %}
       <a href="{{ url_for('engineer_dashboard') }}" class="text-sm text-slate-300 hover:text-white">Maintenance</a>
