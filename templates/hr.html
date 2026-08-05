@@ -4,60 +4,299 @@
 <h1 class="text-xl font-semibold mb-6">HR — Staff Directory &amp; Performance</h1>
 
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Staff</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden mb-4">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Tasks</h2>
+  <div class="bg-white rounded border border-slate-300 p-4 mb-4">
+    <form method="POST" action="{{ url_for('add_hr_task') }}" class="flex gap-3">
+      <input name="task" placeholder="Task" required class="flex-1 border rounded px-2 py-1 text-sm">
+      <select name="period_type" class="border rounded px-2 py-1 text-sm">
+        <option>Day</option>
+        <option>Week</option>
+      </select>
+      <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm">Add</button>
+    </form>
+  </div>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Name</th><th class="px-3 py-2">Role</th><th class="px-3 py-2">Phone</th><th class="px-3 py-2">Email</th><th class="px-3 py-2">Joined</th></tr></thead>
       <tbody>
-      {% for s in staff %}
-      <tr class="border-t"><td class="px-3 py-2">{{ s.name }}</td><td class="px-3 py-2">{{ s.role }}</td><td class="px-3 py-2">{{ s.phone }}</td><td class="px-3 py-2">{{ s.email }}</td><td class="px-3 py-2">{{ s.date_joined }}</td></tr>
-      {% else %}
-      <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">No staff added yet.</td></tr>
-      {% endfor %}
+        {% for task in hr_tasks %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ task.task }}</td>
+          <td class="px-3 py-2 text-slate-400">{{ task.period_type }}</td>
+          <td class="px-3 py-2">
+            <form method="POST" action="{{ url_for('update_hr_task', task_id=task.id) }}">
+              <select name="status" onchange="this.form.submit()" class="border rounded text-xs px-1 py-1">
+                {% for s in ['Not Started', 'In Progress', 'Done'] %}<option value="{{ s }}" {% if task.status==s
+                  %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </form>
+          </td>
+        </tr>
+        {% else %}<tr>
+          <td class="px-3 py-4 text-center text-slate-400">No tasks yet.</td>
+        </tr>{% endfor %}
       </tbody>
     </table>
   </div>
-  <details class="bg-white rounded border border-slate-200 p-4">
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Set a Target</h2>
+  <div class="bg-white rounded border border-slate-300 p-4">
+    <form method="POST" action="{{ url_for('add_target') }}" class="grid grid-cols-3 gap-3">
+      <select name="role" class="border rounded px-2 py-1 text-sm">
+        <option>Sales</option>
+        <option>Engineer</option>
+      </select>
+      <input name="staff_name" placeholder="Staff name" required class="border rounded px-2 py-1 text-sm">
+      <select name="period_type" class="border rounded px-2 py-1 text-sm">
+        <option>Week</option>
+        <option>Month</option>
+      </select>
+      <input name="period_start" type="date" required class="border rounded px-2 py-1 text-sm">
+      <select name="metric" class="border rounded px-2 py-1 text-sm">
+        <option>Sales Count</option>
+        <option>Maintenance Count</option>
+        <option>Complaints Handled</option>
+      </select>
+      <input name="target_value" type="number" placeholder="Target number" required
+        class="border rounded px-2 py-1 text-sm">
+      <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm col-span-3">Set target</button>
+    </form>
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Team Progress</h2>
+  <div class="bg-white rounded border border-slate-300 p-4 space-y-3">
+    {% for t in targets %}
+    <div>
+      <div class="flex justify-between text-sm mb-1"><span>{{ t.staff_name }} — {{ t.metric }} ({{ t.period_type
+          }})</span><span>{{ t.actual }} / {{ t.target_value|int }}</span></div>
+      <div class="w-full bg-slate-100 rounded h-2">
+        <div class="bg-slate-700 h-2 rounded" style="width: {{ t.pct }}%"></div>
+      </div>
+    </div>
+    {% else %}<p class="text-sm text-slate-400">No targets set yet.</p>{% endfor %}
+  </div>
+</section>
+
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Staff</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden mb-4">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Name</th>
+          <th class="px-3 py-2">Role</th>
+          <th class="px-3 py-2">Phone</th>
+          <th class="px-3 py-2">Email</th>
+          <th class="px-3 py-2">Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in staff %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ s.name }}</td>
+          <td class="px-3 py-2">{{ s.role }}</td>
+          <td class="px-3 py-2">{{ s.phone }}</td>
+          <td class="px-3 py-2">{{ s.email }}</td>
+          <td class="px-3 py-2">{{ s.date_joined }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-3 py-4 text-center text-slate-400">No staff added yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <details class="bg-white rounded border border-slate-300 p-4">
     <summary class="text-sm font-medium cursor-pointer">+ Add staff member</summary>
     <form method="POST" action="{{ url_for('add_staff') }}" class="grid grid-cols-3 gap-3 mt-3">
       <input name="name" placeholder="Full name" required class="border rounded px-2 py-1 text-sm">
       <select name="role" class="border rounded px-2 py-1 text-sm">
-        <option value="Engineer">Engineer</option><option value="Sales">Sales</option><option value="Other">Other</option>
+        <option value="Engineer">Engineer</option>
+        <option value="Sales">Sales</option>
+        <option value="Other">Other</option>
       </select>
       <input name="phone" placeholder="Phone (for call requests)" class="border rounded px-2 py-1 text-sm">
       <input name="email" placeholder="Email" class="border rounded px-2 py-1 text-sm">
       <input name="date_joined" type="date" class="border rounded px-2 py-1 text-sm">
-      <button type="submit" class="bg-slate-900 text-white rounded px-3 py-1 text-sm">Add</button>
+      <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm">Add</button>
     </form>
   </details>
 </section>
 
 <div class="grid md:grid-cols-2 gap-6">
-  <section>
-    <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Sales performance</h2>
+  <section class="mb-10">
+    <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Sales performance</h2>
     <div class="bg-white rounded border border-slate-200 overflow-hidden">
       <table class="w-full text-sm">
-        <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Rep</th><th class="px-3 py-2">Revenue</th></tr></thead>
+        <thead class="bg-slate-200 text-left">
+          <tr>
+            <th class="px-3 py-2">Rep</th>
+            <th class="px-3 py-2">Revenue</th>
+          </tr>
+        </thead>
         <tbody>
-        {% for p in sales_performance %}
-        <tr class="border-t"><td class="px-3 py-2">{{ p.name }}</td><td class="px-3 py-2">ugx {{ "{:,.0f}".format(p.revenue) }}</td></tr>
-        {% else %}<tr><td colspan="2" class="px-3 py-4 text-center text-slate-400">No sales recorded yet.</td></tr>{% endfor %}
+          {% for p in sales_performance %}
+          <tr class="border-t">
+            <td class="px-3 py-2">{{ p.name }}</td>
+            <td class="px-3 py-2">ugx {{ "{:,.0f}".format(p.revenue) }}</td>
+          </tr>
+          {% else %}<tr>
+            <td colspan="2" class="px-3 py-4 text-center text-slate-400">No sales recorded yet.</td>
+          </tr>{% endfor %}
         </tbody>
       </table>
     </div>
   </section>
   <section>
-    <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Service performance</h2>
-    <div class="bg-white rounded border border-slate-200 overflow-hidden">
+    <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Service performance</h2>
+    <div class="bg-white rounded border border-slate-300 overflow-hidden">
       <table class="w-full text-sm">
-        <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Engineer</th><th class="px-3 py-2">Services completed</th></tr></thead>
+        <thead class="bg-slate-200 text-left">
+          <tr>
+            <th class="px-3 py-2">Engineer</th>
+            <th class="px-3 py-2">Services completed</th>
+          </tr>
+        </thead>
         <tbody>
-        {% for p in service_performance %}
-        <tr class="border-t"><td class="px-3 py-2">{{ p.name }}</td><td class="px-3 py-2">{{ p.services_completed }}</td></tr>
-        {% else %}<tr><td colspan="2" class="px-3 py-4 text-center text-slate-400">No services logged yet.</td></tr>{% endfor %}
+          {% for p in service_performance %}
+          <tr class="border-t">
+            <td class="px-3 py-2">{{ p.name }}</td>
+            <td class="px-3 py-2">{{ p.services_completed }}</td>
+          </tr>
+          {% else %}<tr>
+            <td colspan="2" class="px-3 py-4 text-center text-slate-400">No services logged yet.</td>
+          </tr>{% endfor %}
         </tbody>
       </table>
     </div>
   </section>
 </div>
+
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Sales Field Trip Approvals</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Name</th>
+          <th class="px-3 py-2">Place</th>
+          <th class="px-3 py-2">Purpose</th>
+          <th class="px-3 py-2">Amount</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">Decide</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in sales_trips %}
+        <tr class="border-t align-top">
+          <td class="px-3 py-2">{{ t.name }}</td>
+          <td class="px-3 py-2">{{ t.place_to_visit }}</td>
+          <td class="px-3 py-2">{{ t.purpose_of_visit }}</td>
+          <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.amount_needed|float) }}</td>
+          <td class="px-3 py-2">{{ t.status }}</td>
+          <td class="px-3 py-2">
+            {% if t.status == 'Pending' %}
+            <form method="POST" action="{{ url_for('decide_sales_field_trip', trip_id=t.id) }}" class="space-y-1">
+              <select name="decision" class="border rounded text-xs px-1 py-1 w-full">
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
+              <input name="hr_notes" placeholder="Notes" class="border rounded text-xs px-1 py-1 w-full">
+              <button type="submit" class="w-full bg-slate-700 text-white rounded text-xs py-1">Save</button>
+            </form>
+            {% else %}<span class="text-xs text-slate-400">Decided</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Engineer Allowances Pending Payment</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Name</th>
+          <th class="px-3 py-2">Trip</th>
+          <th class="px-3 py-2">Report</th>
+          <th class="px-3 py-2">Allowance</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in qualifying_trips %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ t.name }}</td>
+          <td class="px-3 py-2">{{ t.place_to_visit }}</td>
+          <td class="px-3 py-2 max-w-xs">{{ t.report_notes }}</td>
+          <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.allowance_needed|float) }}</td>
+          <td class="px-3 py-2">
+            <form method="POST" action="{{ url_for('mark_engineer_trip_paid', trip_id=t.id) }}"><button type="submit"
+                class="text-xs bg-slate-700 text-white rounded px-2 py-1">Mark paid</button></form>
+          </td>
+        </tr>
+        {% else %}<tr>
+          <td colspan="5" class="px-3 py-4 text-center text-slate-400">None qualifying yet.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+
+<section>
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Uniform / Business Card Tracker</h2>
+  <div class="bg-white rounded border border-slate-300 p-4 mb-4">
+    <form method="POST" action="{{ url_for('add_asset_issuance') }}" class="grid grid-cols-4 gap-3">
+      <input name="staff_name" placeholder="Staff name" required class="border rounded px-2 py-1 text-sm">
+      <select name="item_type" class="border rounded px-2 py-1 text-sm">
+        <option>Uniform</option>
+        <option>Business Card</option>
+        <option>Other</option>
+      </select>
+      <input name="date_issued" type="date" required class="border rounded px-2 py-1 text-sm">
+      <input name="notes" placeholder="Notes" class="border rounded px-2 py-1 text-sm">
+      <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm col-span-4">Log issuance</button>
+    </form>
+  </div>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Staff</th>
+          <th class="px-3 py-2">Item</th>
+          <th class="px-3 py-2">Issued</th>
+          <th class="px-3 py-2">Returned</th>
+
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assets %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ a.staff_name }}</td>
+          <td class="px-3 py-2">{{ a.item_type }}</td>
+          <td class="px-3 py-2">{{ a.date_issued }}</td>
+          <td class="px-3 py-2">{% if a.returned == 'Yes' %}<span class="text-green-700">{{ a.date_returned }}</span>{%
+            else %}<span class="text-slate-700">Not returned</span>{% endif %}</td>
+          <td class="px-3 py-2">{% if a.returned != 'Yes' %}<form method="POST"
+              action="{{ url_for('mark_asset_returned', asset_id=a.id) }}"><button type="submit"
+                class="text-xs bg-slate-700 text-white rounded px-2 py-1">Mark returned</button></form>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 {% endblock %}

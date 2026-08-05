@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Maintenance{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">Maintenance</h1>
 
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Maintenance</h2>
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Maintenance</h2>
   <div class="bg-white rounded border border-slate-200 overflow-hidden">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left">
+      <thead class="bg-slate-200 text-left">
         <tr>
           <th class="px-3 py-2">Item</th>
           <th class="px-3 py-2">Client</th>
@@ -47,7 +46,7 @@
           <td class="px-3 py-2">
             {% if m.overdue or m.due_soon %}
             <a href="{{ url_for('service_maintenance', maintenance_id=m.id) }}"
-              class="text-xs bg-slate-900 text-white rounded px-2 py-1">Complete service</a>
+              class="text-xs bg-slate-700 text-white rounded px-2 py-1">Complete service</a>
             {% else %}
             <span class="text-xs text-slate-400">Not due ({{ m.days_remaining }}d)</span>
             {% endif %}
@@ -59,11 +58,11 @@
   </div>
 </section>
 
-<section>
-  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Complaints</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Complaints</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left">
+      <thead class="bg-slate-200 text-left">
         <tr>
           <th class="px-3 py-1">ID</th>
           <th class="px-2 py-2">Item</th>
@@ -112,4 +111,94 @@
     </table>
   </div>
 </section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Targets</h2>
+
+  <div class="bg-white rounded border border-slate-300 p-4 space-y-3">
+    <table class="w-full text-sm">
+      <thead class="text-slate-600 text-left">
+        <tr>
+          <th clas="px-5 py-2 font-medium">Staff_name</th>
+          <th clas="px-5 py-2 font-medium">Metric</th>
+          <th clas="px-5 py-2 font-medium">Actual</th>
+          <th clas="px-5 py-2 font-medium">Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in targets if t.staff_name == session.get('name') %}
+        <tr class="border-t">
+          <td class="px-5 py-2">{{ t.staff_name }}</td>
+          <td class="px-5 py-2">{{ t.metric }} ({{ t.period_type }})</td>
+          <td class="px-5 py-2">{{ t.actual }}</td>
+          <td class="px-5 py-2">{{ t.target_value|int }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Field Trips</h2>
+  <div class="bg-white rounded border border-slate-300 p-4 mb-4">
+    <form method="POST" action="{{ url_for('request_engineer_field_trip') }}" class="grid grid-cols-2 gap-4">
+      <input name="staff_name" type="text" placeholder="Name" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="request_date" type="date" required class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="place_to_visit" placeholder="Place/business to visit" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="location" placeholder="Location" required class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="estimated_time" placeholder="Estimated time (e.g. 2 hours)" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="allowance_needed" type="number" step="0.01" placeholder="Allowance needed" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <button type="submit" class="bg-slate-700 text-white rounded px-4 py-2 text-sm">Log trip</button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Staff Name</th>
+          <th class="px-3 py-2">Date</th>
+          <th class="px-3 py-2">Place</th>
+          <th class="px-3 py-2">Est. time</th>
+          <th class="px-3 py-2">Actual</th>
+          <th class="px-3 py-2">Allowance</th>
+          <th class="px-3 py-2">Payment</th>
+          <th class="px-3 py-2">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in engineer_trips if t.name == session.get('name') %}
+        <tr class="border-t align-top">
+          <td class="px-3 py-2">{{ t.staff_name }}</td>
+          <td class="px-3 py-2">{{ t.request_date }}</td>
+          <td class="px-3 py-2">{{ t.place_to_visit }}</td>
+          <td class="px-3 py-2">{{ t.estimated_time }}</td>
+          <td class="px-3 py-2">{{ t.actual_time_spent or "—" }}</td>
+          <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.allowance_needed|float) }}</td>
+          <td class="px-3 py-2">{% if t.payment_status == 'Paid' %}<span class="text-green-700 text-xs">Paid {{
+              t.payment_date }}</span>{% else %}<span class="text-slate-400 text-xs">Unpaid</span>{% endif %}</td>
+          <td class="px-3 py-2">
+            {% if t.completed != 'Yes' %}
+            <form method="POST" action="{{ url_for('complete_engineer_field_trip', trip_id=t.id) }}" class="space-y-1">
+              <input name="actual_time_spent" placeholder="Actual time spent" required
+                class="border border-slate-300 rounded px-1 py-1 text-xs w-full">
+              <textarea name="report_notes" placeholder="Trip report" required
+                class="border border-slate-300 rounded px-1 py-1 text-xs w-full"></textarea>
+              <button type="submit" class="w-full bg-slate-700 text-white rounded text-xs py-1">Mark complete + submit
+                report</button>
+            </form>
+            {% else %}<span class="text-xs text-green-700">Report submitted</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 {% endblock %}

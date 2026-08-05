@@ -45,6 +45,12 @@ SHEET_COLUMNS = {
     "SpareParts": ["id", "part_name", "model_number", "serial_number", "removed_from_item", "installed_into_item", "date_moved", "logged_by", "notes"],
     "ServiceReports": ["id", "maintenance_id", "item", "client", "issue_reported", "engineer_assigned", "part_used", "part_qty", "date_completed", "notes", "scan_filename"],
     "Staff": ["id", "name", "role", "phone", "email", "date_joined"],
+
+    "SalesFieldTrips": ["id", "staff_name", "request_date", "place_to_visit", "location", "purpose_of_visit", "expected_outcome", "amount_needed", "status", "hr_notes", "decided_by", "decided_date"],
+    "EngineerFieldTrips": ["id", "staff_name", "request_date", "place_to_visit", "location", "estimated_time", "actual_time_spent", "allowance_needed", "report_submitted", "report_notes", "completed", "payment_status", "payment_date"],
+    "Targets": ["id", "role", "staff_name", "period_type", "period_start", "metric", "target_value", "set_by", "date_set"],
+    "HrTasks": ["id", "task", "period_type", "date_created", "status", "date_completed"],
+    "AssetIssuance": ["id", "staff_name", "item_type", "date_issued", "returned", "date_returned", "notes"],
 }
 
 _lock = threading.Lock()
@@ -133,6 +139,38 @@ def get_payment_history(sheets, sale_id) -> list[dict]:
     df = sheets["Installments"]
     return df_to_records(df[df["sale_id"] == sale_id].sort_values("payment_date"))
 
+
+def period_bounds(period_type, period_start):
+    start = pd.to_datetime(period_start, format="mixed")
+    end = start + timedelta(days=7) if period_type == "Week" else start + pd.DateOffset(months=1)
+    return start, end
+
+def compute_target_progress(sheets):
+    targets = df_to_records(sheets["Targets"])
+    sales_df = sheets["Sales"].copy()
+    sales_df = sales_df[sales_df["type"] != "Maintenance"] if len(sales_df) else sales_df
+    reports_df = sheets["ServiceReports"]
+    complaints_df = sheets["Complaints"]
+
+    for t in targets:
+        start, end = period_bounds(t["period_type"], t["period_start"])
+        actual = 0
+        if t["metric"] == "Sales Count" and len(sales_df):
+            dates = pd.to_datetime(sales_df["sale_date"], format="mixed")
+            mask = (sales_df["salesperson"] == t["staff_name"]) & (dates >= start) & (dates < end)
+            actual = int(mask.sum())
+        elif t["metric"] == "Maintenance Count" and len(reports_df):
+            dates = pd.to_datetime(reports_df["date_completed"], format="mixed")
+            mask = (reports_df["engineer_assigned"] == t["staff_name"]) & (dates >= start) & (dates < end)
+            actual = int(mask.sum())
+        elif t["metric"] == "Complaints Handled" and len(complaints_df):
+            dates = pd.to_datetime(complaints_df["date_opened"], format="mixed")
+            mask = (complaints_df["status"] == "Resolved") & (dates >= start) & (dates < end)
+            actual = int(mask.sum())
+        t["actual"] = actual
+        t["target_value"] = float(t["target_value"] or 0)
+        t["pct"] = min(100, round(actual / t["target_value"] * 100)) if t["target_value"] else 0
+    return targets
 
 app = Flask(__name__)
 app.secret_key = "change-this-to-a-random-string"
@@ -288,6 +326,45 @@ def reassign_engineer(maintenance_id):
         sheets["Maintenance"] = df
         write_all_sheets(sheets)
         flash("Engineer reassigned.")
+    return redirect(url_for("engineer_dashboard"))
+
+# ----- Engineer field trips -----
+
+@app.route("/engineer/field-trip/request", methods=["POST"])
+@login_required(role="engineer")
+def request_engineer_field_trip():
+    sheets = read_all_sheets()
+    df = sheets["EngineerFieldTrips"]
+    new_row = {
+        "id": new_id("FT"), "name": session.get("name", ""),
+        "request_date": request.form.get("request_date", datetime.now().strftime("%Y-%m-%d")),
+        "place_to_visit": request.form.get("place_to_visit", ""),
+        "location": request.form.get("location", ""),
+        "estimated_time": request.form.get("estimated_time", ""),
+        "actual_time_spent": "", "allowance_needed": request.form.get("allowance_needed", "0"),
+        "report_submitted": "No", "report_notes": "", "completed": "No",
+        "payment_status": "Unpaid", "payment_date": "",
+    }
+    sheets["EngineerFieldTrips"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Field trip logged.")
+    return redirect(url_for("engineer_dashboard"))
+
+
+@app.route("/engineer/field-trip/<trip_id>/complete", methods=["POST"])
+@login_required(role="engineer")
+def complete_engineer_field_trip(trip_id):
+    sheets = read_all_sheets()
+    df = sheets["EngineerFieldTrips"]
+    match = df["id"] == trip_id
+    if match.any():
+        df.loc[match, "actual_time_spent"] = request.form.get("actual_time_spent", "")
+        df.loc[match, "report_notes"] = request.form.get("report_notes", "")
+        df.loc[match, "report_submitted"] = "Yes"
+        df.loc[match, "completed"] = "Yes"
+        sheets["EngineerFieldTrips"] = df
+        write_all_sheets(sheets)
+        flash("Trip marked complete. Now qualifies for allowance review.")
     return redirect(url_for("engineer_dashboard"))
 
 
@@ -551,6 +628,47 @@ def pay_sale(sale_id):
     return render_template("pay_sale.html", sale=sale, payment_history=payment_history)
 
 
+@app.route("/sales/field-trip/request", methods=["POST"])
+@login_required(role="sales")
+def request_sales_field_trip():
+    sheets = read_all_sheets()
+    df = sheets["SalesFieldTrips"]
+    new_row = {
+        "id": new_id("FT"), "name": session.get("name", ""),
+        "request_date": request.form.get("request_date", datetime.now().strftime("%Y-%m-%d")),
+        "place_to_visit": request.form.get("place_to_visit", ""),
+        "location": request.form.get("location", ""),
+        "purpose_of_visit": request.form.get("purpose_of_visit", ""),
+        "expected_outcome": request.form.get("expected_outcome", ""),
+        "amount_needed": request.form.get("amount_needed", "0"),
+        "status": "Pending", "hr_notes": "", "decided_by": "", "decided_date": "",
+    }
+    sheets["SalesFieldTrips"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Field trip request submitted for HR approval.")
+    return redirect(url_for("sales_dashboard"))
+
+
+@app.route("/targets/add", methods=["POST"])
+def add_target():
+    if session.get("role") not in ("hr", "exec"):
+        return redirect(url_for("login"))
+    sheets = read_all_sheets()
+    df = sheets["Targets"]
+    new_row = {
+        "id": new_id("TG"), "role": request.form.get("role", "Sales"),
+        "staff_name": request.form.get("staff_name", ""),
+        "period_type": request.form.get("period_type", "Week"),
+        "period_start": request.form.get("period_start", ""),
+        "metric": request.form.get("metric", "Sales Count"),
+        "target_value": request.form.get("target_value", "0"),
+        "set_by": session.get("name", ""), "date_set": datetime.now().strftime("%Y-%m-%d"),
+    }
+    sheets["Targets"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Target set.")
+    return redirect(url_for(f"{session['role']}_dashboard"))
+
 @app.route("/exec")
 @login_required(role="exec")
 def exec_dashboard():
@@ -604,8 +722,10 @@ def exec_dashboard():
     return render_template(
         "exec.html",
         summary={
-            "total_revenue": total_revenue, "open_complaints": open_complaints,
-            "maintenance_due_7d": len(maintenance_due_soon), "low_stock_count": low_stock_count,
+            "total_revenue": total_revenue,
+            "open_complaints": open_complaints,
+            "maintenance_due_7d": len(maintenance_due_soon),
+            "low_stock_count": low_stock_count,
         },
         complaints_by_status=complaints_by_status, 
         recent_activity=activity[:8],
@@ -679,7 +799,15 @@ def hr_dashboard():
     )
     service_performance = [{"name": n, "services_completed": int(v)} for n, v in service_performance.items() if n]
 
-    return render_template("hr.html", staff=staff, sales_performance=sales_performance, service_performance=service_performance)
+    sales_trips = df_to_records(sheets["SalesFieldTrips"])
+    engineer_trips = df_to_records(sheets["EngineerFieldTrips"])
+    hr_tasks = df_to_records(sheets["HrTasks"])
+    assets = df_to_records(sheets["AssetIssuance"])
+    qualifying_trips = [t for t in engineer_trips if t["completed"] == "Yes" and t["payment_status"] != "Paid"]
+
+    return render_template(
+        "hr.html", staff=staff, sales_performance=sales_performance, service_performance=service_performance, sales_trips=sales_trips, engineer_trips=engineer_trips, qualifying_trips=qualifying_trips, hr_tasks=hr_tasks, assets=assets, targets=compute_target_progress(sheets),
+        )
 
 
 @app.route("/hr/staff/add", methods=["POST"])
@@ -695,6 +823,104 @@ def add_staff():
     sheets["Staff"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     write_all_sheets(sheets)
     flash(f"{new_row['name']} added to staff.")
+    return redirect(url_for("hr_dashboard"))
+
+# ----- HR: approvals, tasks, assets, targets -----
+
+@app.route("/hr/field-trip/sales/<trip_id>/decide", methods=["POST"])
+@login_required(role="hr")
+def decide_sales_field_trip(trip_id):
+    sheets = read_all_sheets()
+    df = sheets["SalesFieldTrips"]
+    match = df["id"] == trip_id
+    if match.any():
+        df.loc[match, "status"] = request.form.get("decision", "Rejected")
+        df.loc[match, "hr_notes"] = request.form.get("hr_notes", "")
+        df.loc[match, "decided_by"] = session.get("name", "")
+        df.loc[match, "decided_date"] = datetime.now().strftime("%Y-%m-%d")
+        sheets["SalesFieldTrips"] = df
+        write_all_sheets(sheets)
+        flash("Decision recorded.")
+    return redirect(url_for("hr_dashboard"))
+
+
+@app.route("/hr/field-trip/engineer/<trip_id>/mark-paid", methods=["POST"])
+@login_required(role="hr")
+def mark_engineer_trip_paid(trip_id):
+    sheets = read_all_sheets()
+    df = sheets["EngineerFieldTrips"]
+    match = df["id"] == trip_id
+    if match.any():
+        df.loc[match, "payment_status"] = "Paid"
+        df.loc[match, "payment_date"] = datetime.now().strftime("%Y-%m-%d")
+        sheets["EngineerFieldTrips"] = df
+        write_all_sheets(sheets)
+        flash("Allowance marked as paid.")
+    return redirect(url_for("hr_dashboard"))
+
+
+@app.route("/hr/tasks/add", methods=["POST"])
+@login_required(role="hr")
+def add_hr_task():
+    sheets = read_all_sheets()
+    df = sheets["HrTasks"]
+    new_row = {
+        "id": new_id("T"), "task": request.form.get("task", ""),
+        "period_type": request.form.get("period_type", "Day"),
+        "date_created": datetime.now().strftime("%Y-%m-%d"),
+        "status": "Not Started", "date_completed": "",
+    }
+    sheets["HrTasks"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Task added.")
+    return redirect(url_for("hr_dashboard"))
+
+
+@app.route("/hr/tasks/<task_id>/status", methods=["POST"])
+@login_required(role="hr")
+def update_hr_task(task_id):
+    sheets = read_all_sheets()
+    df = sheets["HrTasks"]
+    match = df["id"] == task_id
+    if match.any():
+        new_status = request.form.get("status", "Not Started")
+        df.loc[match, "status"] = new_status
+        df.loc[match, "date_completed"] = datetime.now().strftime("%Y-%m-%d") if new_status == "Done" else ""
+        sheets["HrTasks"] = df
+        write_all_sheets(sheets)
+        flash(f"Task status {new_status}.")
+    return redirect(url_for("hr_dashboard"))
+
+
+@app.route("/hr/assets/add", methods=["POST"])
+@login_required(role="hr")
+def add_asset_issuance():
+    sheets = read_all_sheets()
+    df = sheets["AssetIssuance"]
+    new_row = {
+        "id": new_id("AS"), "staff_name": request.form.get("staff_name", ""),
+        "item_type": request.form.get("item_type", "Uniform"),
+        "date_issued": request.form.get("date_issued", datetime.now().strftime("%Y-%m-%d")),
+        "returned": "No", "date_returned": "", "notes": request.form.get("notes", ""),
+    }
+    sheets["AssetIssuance"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Issuance logged.")
+    return redirect(url_for("hr_dashboard"))
+
+
+@app.route("/hr/assets/<asset_id>/return", methods=["POST"])
+@login_required(role="hr")
+def mark_asset_returned(asset_id):
+    sheets = read_all_sheets()
+    df = sheets["AssetIssuance"]
+    match = df["id"] == asset_id
+    if match.any():
+        df.loc[match, "returned"] = "Yes"
+        df.loc[match, "date_returned"] = datetime.now().strftime("%Y-%m-%d")
+        sheets["AssetIssuance"] = df
+        flash("Asset marked as returned.")
+        write_all_sheets(sheets)
     return redirect(url_for("hr_dashboard"))
 
 

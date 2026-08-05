@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Record Payment{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-2">Record a payment</h1>
+<p class="text-sm text-slate-500 mb-6">{{ sale.item }} — {{ sale.client }}</p>
+
+<div class="grid md:grid-cols-2 gap-6">
+  <div class="bg-white rounded border border-slate-200 p-5">
+    <h2 class="text-xs font-semibold text-slate-500 uppercase mb-3">Sale summary</h2>
+    <dl class="text-sm space-y-2">
+      <div class="flex justify-between"><dt class="text-slate-500">Agreed price</dt><dd>ugx {{ "{:,.0f}".format(sale.agreed_price|float) }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Paid so far</dt><dd>ugx {{ "{:,.0f}".format(sale.amount_paid|float) }}</dd></div>
+      <div class="flex justify-between font-medium"><dt class="text-red-600">Balance</dt><dd class="text-red-600">ugx {{ "{:,.0f}".format(sale.balance|float) }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Currently due</dt><dd>{{ sale.balance_due_date or "—" }}</dd></div>
+    </dl>
+
+    {% if payment_history %}
+    <h3 class="text-xs font-semibold text-slate-500 uppercase mt-6 mb-2">Payment history</h3>
+    <table class="w-full text-xs">
+      <thead class="text-slate-400 text-left"><tr><th class="py-1">Date</th><th class="py-1">Amount</th><th class="py-1">Method</th><th class="py-1">Balance after</th></tr></thead>
+      <tbody>
+      {% for p in payment_history %}
+      <tr class="border-t"><td class="py-1">{{ p.payment_date }}</td><td class="py-1">ugx {{ "{:,.0f}".format(p.amount_paid|float) }}</td><td class="py-1">{{ p.payment_stream }}</td><td class="py-1">ugx {{ "{:,.0f}".format(p.balance_after|float) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded border border-slate-200 p-5">
+    <h2 class="text-xs font-semibold text-slate-500 uppercase mb-3">New payment</h2>
+    <form method="POST" class="space-y-4">
+      <div><label class="block text-xs text-slate-600 mb-1">Amount paying now</label>
+        <input name="amount_paid" type="number" step="0.01" required class="w-full border rounded px-3 py-2 text-sm"></div>
+      <div><label class="block text-xs text-slate-600 mb-1">Payment method</label>
+        <select name="payment_stream" class="w-full border rounded px-3 py-2 text-sm">
+          <option value="Bank Transfer">Bank Transfer</option>
+          <option value="Mobile Money">Mobile Money</option>
+          <option value="In person Cash">In person Cash</option>
+        </select>
+      </div>
+      <div><label class="block text-xs text-slate-600 mb-1">Next balance due date (leave blank if this clears it)</label>
+        <input name="balance_due_date" type="date" class="w-full border rounded px-3 py-2 text-sm"></div>
+      <button type="submit" class="w-full bg-slate-900 text-white rounded py-2 text-sm">Record payment</button>
+    </form>
+    <a href="{{ url_for('sales_dashboard') }}" class="block text-center text-sm text-slate-500 underline mt-4">← Back to sales</a>
+  </div>
+</div>
+{% endblock %}

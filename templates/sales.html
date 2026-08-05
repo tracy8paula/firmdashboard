@@ -4,10 +4,10 @@
 <h1 class="text-2xl font-semibold mb-4">Sales &amp; Inventory</h1>
 
 <section class="mb-10">
-  <h2 class="text-md font-semibold text-slate-500 uppercase mb-3">Items</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+  <h2 class="text-md font-semibold text-slate-600 uppercase mb-3">Items</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left">
+      <thead class="bg-slate-200 text-left">
         <tr>
           <th class="px-3 py-2">Name</th>
           <th class="px-2 py-2">Model</th>
@@ -31,42 +31,43 @@
 </section>
 
 <section class="mb-10">
-  <h2 class="text-md font-semibold text-slate-500 uppercase mb-3">Log a sale</h2>
-  <div class="bg-white rounded border border-slate-200 p-4">
+  <h2 class="text-md font-semibold text-slate-600 uppercase mb-3">Log a sale</h2>
+  <div class="bg-white rounded border border-slate-300 p-4">
     <form method="POST" action="{{ url_for('log_sale') }}" class="grid grid-cols-2 gap-4">
 
       <div><label class="block text-xs text-slate-600 mb-1">Item</label>
-        <select name="item" required class="w-full border rounded px-3 py-2 text-sm">
+        <select name="item" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
           {% for item in items %}<option value="{{ item.name }}">{{ item.name }} (ugx {{ "{:,.0f}".format(item.price)
             }})</option>{% endfor %}
         </select>
       </div>
       <div><label class="block text-xs text-slate-600 mb-1">Quantity</label>
-        <input name="quantity" type="number" min="1" value="1" required class="w-full border rounded px-3 py-2 text-sm">
+        <input name="quantity" type="number" min="1" value="1" required
+          class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
 
       <div><label class="block text-xs text-slate-600 mb-1">Client</label>
-        <input name="client" required class="w-full border rounded px-3 py-2 text-sm">
+        <input name="client" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
       <div><label class="block text-xs text-slate-600 mb-1">Salesperson</label>
         <input name="salesperson" required value="{{ session.get('name') }}"
-          class="w-full border rounded px-3 py-2 text-sm">
+          class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
 
       <div><label class="block text-xs text-slate-600 mb-1">Agreed price (total)</label>
         <input id="agreedPrice" name="agreed_price" type="number" step="0.01" required onchange="updateBalanceFields()"
-          class="w-full border rounded px-3 py-2 text-sm">
+          class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
       <div><label class="block text-xs text-slate-600 mb-1">Amount paid now</label>
         <input id="amountPaid" name="amount_paid" type="number" step="0.01" value="0" required
-          onchange="updateBalanceFields()" class="w-full border rounded px-3 py-2 text-sm">
+          onchange="updateBalanceFields()" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
 
       <div><label class="block text-xs text-slate-600 mb-1">Date</label>
-        <input name="sale_date" type="date" required class="w-full border rounded px-3 py-2 text-sm">
+        <input name="sale_date" type="date" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
       <div><label class="block text-xs text-slate-600 mb-1">Payment stream</label>
-        <select name="payment_stream" class="w-full border rounded px-3 py-2 text-sm">
+        <select name="payment_stream" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
           <option value="Bank Transfer">Bank Transfer</option>
           <option value="Mobile Money">Mobile Money</option>
           <option value="In person Cash">In person Cash</option>
@@ -74,7 +75,7 @@
       </div>
 
       <div><label class="block text-xs text-slate-600 mb-1">Service interval</label>
-        <select name="service_interval" class="w-full border rounded px-3 py-2 text-sm">
+        <select name="service_interval" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
           {% for key, val in service_intervals.items() %}<option value="{{ key }}" {% if key=='6_months' %}selected{%
             endif %}>{{ val.label }}</option>{% endfor %}
         </select>
@@ -85,28 +86,28 @@
       <div id="balanceFields" class="col-span-2 grid grid-cols-2 gap-4" style="display:none;">
         <div>
           <label class="block text-xs text-slate-600 mb-1">Payment route</label>
-          <select name="payment_route" class="w-full border rounded px-3 py-2 text-sm">
+          <select name="payment_route" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
             <option value="Lumpsum">Lumpsum (one remaining payment)</option>
             <option value="Installments">Installments (several future payments)</option>
           </select>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Next balance due date</label>
-          <input name="balance_due_date" type="date" class="w-full border rounded px-3 py-2 text-sm">
+          <input name="balance_due_date" type="date" class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
         </div>
       </div>
 
-      <div class="col-span-2"><button type="submit" class="bg-slate-900 text-white rounded px-4 py-2 text-sm">Log
+      <div class="col-span-2"><button type="submit" class="bg-slate-700 text-white rounded px-4 py-2 text-sm">Log
           sale</button></div>
     </form>
   </div>
 </section>
 
-<section>
-  <h2 class="text-md font-semibold text-slate-500 uppercase mb-3">Sales history</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+<section class="mb-10">
+  <h2 class="text-md font-semibold text-slate-600 uppercase mb-3">Sales history</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left">
+      <thead class="bg-slate-200 text-left">
         <tr>
           <th class="px-2 py-2">Date</th>
           <th class="px-2 py-2">Item</th>
@@ -146,6 +147,77 @@
     </table>
   </div>
 </section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Targets</h2>
+  <div class="bg-white rounded border border-slate-300 p-4 space-y-3">
+    {% for t in targets if t.staff_name == session.get('name') %}
+    <div>
+      <div class="flex justify-between text-sm mb-1"><span>{{ t.metric }} ({{ t.period_type }})</span><span>{{ t.actual
+          }} / {{ t.target_value|int }}</span></div>
+      <div class="w-full bg-slate-200 rounded h-2">
+        <div class="bg-slate-700 h-2 rounded" style="width: {{ t.pct }}%"></div>
+      </div>
+    </div>
+    {% else %}<p class="text-sm text-slate-400">No targets set yet.</p>{% endfor %}
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Request a Field Trip</h2>
+  <div class="bg-white rounded border border-slate-300 p-4">
+    <form method="POST" action="{{ url_for('request_sales_field_trip') }}" class="grid grid-cols-2 gap-4">
+      <input name="staff_name" type="text" placeholder="Staff name" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="request_date" type="date" placeholder="Request date" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="place_to_visit" placeholder="Place to visit" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="location" placeholder="Location" required class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="amount_needed" type="number" step="0.01" placeholder="Amount needed" required
+        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <textarea name="purpose_of_visit" placeholder="Purpose of visit" required
+        class="col-span-2 border border-slate-300 rounded px-3 py-2 text-sm"></textarea>
+      <textarea name="expected_outcome" placeholder="Expected outcome" required
+        class="col-span-2 border border-slate-300 rounded px-3 py-2 text-sm"></textarea>
+      <button type="submit" class="col-span-2 bg-slate-900 text-white rounded px-4 py-2 text-sm">Submit for HR
+        approval</button>
+    </form>
+  </div>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Field Trip Requests</h2>
+  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Staff name</th>
+          <th class="px-3 py-2">Date</th>
+          <th class="px-3 py-2">Place</th>
+          <th class="px-3 py-2">Amount</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">HR notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in sales_trips if t.name == session.get('name') %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ t.name }}</td>
+          <td class="px-3 py-2">{{ t.request_date }}</td>
+          <td class="px-3 py-2">{{ t.place_to_visit }}</td>
+          <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.amount_needed|float) }}</td>
+          <td class="px-3 py-2"><span
+              class="px-2 py-0.5 rounded text-xs {% if t.status == 'Approved' %}bg-green-100 text-green-800{% elif t.status == 'Rejected' %}bg-red-100 text-red-700{% else %}bg-amber-100 text-amber-800{% endif %}">{{
+              t.status }}</span></td>
+          <td class="px-3 py-2">{{ t.hr_notes }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 {% endblock %}
 
 {% block scripts %}
