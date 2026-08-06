@@ -5,7 +5,7 @@
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Tasks</h2>
-  <div class="bg-white rounded border border-slate-300 p-4 mb-4">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4 mb-4">
     <form method="POST" action="{{ url_for('add_hr_task') }}" class="flex gap-3">
       <input name="task" placeholder="Task" required class="flex-1 border rounded px-2 py-1 text-sm">
       <select name="period_type" class="border rounded px-2 py-1 text-sm">
@@ -15,7 +15,7 @@
       <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm">Add</button>
     </form>
   </div>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <tbody>
         {% for task in hr_tasks %}
@@ -23,12 +23,17 @@
           <td class="px-3 py-2">{{ task.task }}</td>
           <td class="px-3 py-2 text-slate-400">{{ task.period_type }}</td>
           <td class="px-3 py-2">
+            {% if task.status == 'Done' %}
+            <span class="text-xs text-green-700">Done ✓ ({{ task.date_completed }})</span>
+            {% else %}
             <form method="POST" action="{{ url_for('update_hr_task', task_id=task.id) }}">
-              <select name="status" onchange="this.form.submit()" class="border rounded text-xs px-1 py-1">
+              <select name="status" onchange="this.form.submit()" class="border rounded text-xs px-16 py-1">
                 {% for s in ['Not Started', 'In Progress', 'Done'] %}<option value="{{ s }}" {% if task.status==s
                   %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
             </form>
+            <span class="countdown text-xs text-slate-400 block mt-1" data-deadline="{{ task.deadline_iso }}"></span>
+            {% endif %}
           </td>
         </tr>
         {% else %}<tr>
@@ -41,7 +46,7 @@
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Set a Target</h2>
-  <div class="bg-white rounded border border-slate-300 p-4">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4">
     <form method="POST" action="{{ url_for('add_target') }}" class="grid grid-cols-3 gap-3">
       <select name="role" class="border rounded px-2 py-1 text-sm">
         <option>Sales</option>
@@ -66,24 +71,25 @@
 </section>
 
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Team Progress</h2>
-  <div class="bg-white rounded border border-slate-300 p-4 space-y-3">
-    {% for t in targets %}
-    <div>
-      <div class="flex justify-between text-sm mb-1"><span>{{ t.staff_name }} — {{ t.metric }} ({{ t.period_type
-          }})</span><span>{{ t.actual }} / {{ t.target_value|int }}</span></div>
-      <div class="w-full bg-slate-100 rounded h-2">
-        <div class="bg-slate-700 h-2 rounded" style="width: {{ t.pct }}%"></div>
-      </div>
+  <div class="flex items-center rounded justify-between mb-3">
+    <h2 class="text-sm font-semibold text-slate-600 uppercase">Team Progress</h2>
+    <div class="flex gap-1 bg-slate-200 rounded p-1">
+      <button data-period="Week"
+        class="target-range-btn px-3 py-1 bg-slate-100 text-white text-xs rounded font-medium">Week</button>
+      <button data-period="Month"
+        class="target-range-btn px-3 py-1 bg-slate-100 text-white text-xs rounded font-medium">Month</button>
     </div>
-    {% else %}<p class="text-sm text-slate-400">No targets set yet.</p>{% endfor %}
+  </div>
+  <div class="bg-white rounded-2xl border border-slate-200 p-4 grid md:grid-cols-2 gap-4">
+    <canvas id="targetsChart" height="220"></canvas>
+    <div id="targetsDetail" class="text-sm text-slate-500 flex items-center justify-center">Slice.</div>
   </div>
 </section>
 
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Staff</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden mb-4">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden mb-4">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -111,7 +117,7 @@
       </tbody>
     </table>
   </div>
-  <details class="bg-white rounded border border-slate-300 p-4">
+  <details class="bg-white rounded-2xl border border-slate-300 p-4">
     <summary class="text-sm font-medium cursor-pointer">+ Add staff member</summary>
     <form method="POST" action="{{ url_for('add_staff') }}" class="grid grid-cols-3 gap-3 mt-3">
       <input name="name" placeholder="Full name" required class="border rounded px-2 py-1 text-sm">
@@ -128,59 +134,59 @@
   </details>
 </section>
 
-<div class="grid md:grid-cols-2 gap-6">
-  <section class="mb-10">
-    <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Sales performance</h2>
-    <div class="bg-white rounded border border-slate-200 overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-200 text-left">
-          <tr>
-            <th class="px-3 py-2">Rep</th>
-            <th class="px-3 py-2">Revenue</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in sales_performance %}
-          <tr class="border-t">
-            <td class="px-3 py-2">{{ p.name }}</td>
-            <td class="px-3 py-2">ugx {{ "{:,.0f}".format(p.revenue) }}</td>
-          </tr>
-          {% else %}<tr>
-            <td colspan="2" class="px-3 py-4 text-center text-slate-400">No sales recorded yet.</td>
-          </tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-  <section>
-    <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Service performance</h2>
-    <div class="bg-white rounded border border-slate-300 overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-200 text-left">
-          <tr>
-            <th class="px-3 py-2">Engineer</th>
-            <th class="px-3 py-2">Services completed</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in service_performance %}
-          <tr class="border-t">
-            <td class="px-3 py-2">{{ p.name }}</td>
-            <td class="px-3 py-2">{{ p.services_completed }}</td>
-          </tr>
-          {% else %}<tr>
-            <td colspan="2" class="px-3 py-4 text-center text-slate-400">No services logged yet.</td>
-          </tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-</div>
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Sales performance</h2>
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Rep</th>
+          <th class="px-3 py-2">Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in sales_performance %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ p.staff_name }}</td>
+          <td class="px-3 py-2">ugx {{ "{:,.0f}".format(p.revenue) }}</td>
+        </tr>
+        {% else %}<tr>
+          <td colspan="2" class="px-3 py-4 text-center text-slate-400">No sales recorded yet.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Service performance</h2>
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-200 text-left">
+        <tr>
+          <th class="px-3 py-2">Engineer</th>
+          <th class="px-3 py-2">Services completed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in service_performance %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ p.staff_name }}</td>
+          <td class="px-3 py-2">{{ p.services_completed }}</td>
+        </tr>
+        {% else %}<tr>
+          <td colspan="2" class="px-3 py-4 text-center text-slate-400">No services logged yet.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Sales Field Trip Approvals</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -195,7 +201,7 @@
       <tbody>
         {% for t in sales_trips %}
         <tr class="border-t align-top">
-          <td class="px-3 py-2">{{ t.name }}</td>
+          <td class="px-3 py-2">{{ t.staff_name }}</td>
           <td class="px-3 py-2">{{ t.place_to_visit }}</td>
           <td class="px-3 py-2">{{ t.purpose_of_visit }}</td>
           <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.amount_needed|float) }}</td>
@@ -221,7 +227,7 @@
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Engineer Allowances Pending Payment</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -235,7 +241,7 @@
       <tbody>
         {% for t in qualifying_trips %}
         <tr class="border-t">
-          <td class="px-3 py-2">{{ t.name }}</td>
+          <td class="px-3 py-2">{{ t.staff_name }}</td>
           <td class="px-3 py-2">{{ t.place_to_visit }}</td>
           <td class="px-3 py-2 max-w-xs">{{ t.report_notes }}</td>
           <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.allowance_needed|float) }}</td>
@@ -254,9 +260,9 @@
 
 
 
-<section>
+<section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Uniform / Business Card Tracker</h2>
-  <div class="bg-white rounded border border-slate-300 p-4 mb-4">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4 mb-4">
     <form method="POST" action="{{ url_for('add_asset_issuance') }}" class="grid grid-cols-4 gap-3">
       <input name="staff_name" placeholder="Staff name" required class="border rounded px-2 py-1 text-sm">
       <select name="item_type" class="border rounded px-2 py-1 text-sm">
@@ -269,7 +275,7 @@
       <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm col-span-4">Log issuance</button>
     </form>
   </div>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -299,4 +305,67 @@
   </div>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let targetsChart, targetsData = [];
+
+  function setActiveTargetRange(period) {
+    document.querySelectorAll(".target-range-btn").forEach((btn) => {
+      const active = btn.dataset.period === period;
+      btn.classList.toggle("bg-slate-900", active);
+      btn.classList.toggle("text-white", active);
+    });
+  }
+
+  async function loadTargetsSummary(period) {
+    setActiveTargetRange(period);
+    const res = await fetch(`/api/targets-summary?period=${period}`);
+    targetsData = await res.json();
+    const labels = targetsData.map(d => d.name);
+    const values = targetsData.map(d => d.avg_pct);
+
+    if (!targetsChart) {
+      targetsChart = new Chart(document.getElementById("targetsChart"), {
+        type: "pie",
+        data: { labels, datasets: [{ data: values }] },
+        options: {
+          plugins: { legend: { position: "bottom" } },
+          onClick: (evt, elements) => {
+            if (elements.length) {
+              const d = targetsData[elements[0].index];
+              document.getElementById("targetsDetail").innerHTML =
+                `<div class="text-center"><div class="font-medium text-slate-900">${d.name}</div><div class="text-2xl font-bold mt-1">${d.targets_met}/${d.targets_total}</div><div class="text-xs text-slate-400">targets hit (avg ${d.avg_pct}%)</div></div>`;
+            }
+          },
+        },
+      });
+    } else {
+      targetsChart.data.labels = labels;
+      targetsChart.data.datasets[0].data = values;
+      targetsChart.update();
+    }
+  }
+
+  document.querySelectorAll(".target-range-btn").forEach(btn => btn.addEventListener("click", () => loadTargetsSummary(btn.dataset.period)));
+  loadTargetsSummary("Week");
+
+  function updateCountdowns() {
+    document.querySelectorAll(".countdown").forEach(el => {
+      const deadline = new Date(el.dataset.deadline).getTime();
+      const diff = deadline - Date.now();
+      if (diff <= 0) { el.textContent = "Overdue"; el.classList.add("text-red-600"); return; }
+      const totalHours = diff / 3600000;
+      if (totalHours > 24) {
+        el.textContent = `${Math.floor(totalHours / 24)}d ${Math.floor(totalHours % 24)}h left`;
+      } else {
+        el.textContent = `${Math.floor(totalHours)}h ${Math.floor((diff % 3600000) / 60000)}m left`;
+      }
+    });
+  }
+  setInterval(updateCountdowns, 60000);
+  updateCountdowns();
+</script>
 {% endblock %}

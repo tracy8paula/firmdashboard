@@ -12,6 +12,7 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
+# ---------------------- CONFIG ----------------------
 
 mock_data = Path(__file__).parent / "data" / "company_data.xlsx"
 UPLOAD_DIR = Path(__file__).parent / "static" / "uploads"
@@ -32,7 +33,7 @@ USERS = {
     "sales": {"password_hash": generate_password_hash("changeme1"), "role": "sales", "name": "Sales"},
     "engineer": {"password_hash": generate_password_hash("changeme2"), "role": "engineer", "name": "Maintenance"},
     "exec": {"password_hash": generate_password_hash("changeme3"), "role": "exec", "name": "Executive"},
-    "hr": {"password_hash": generate_password_hash("changeme4"), "role": "hr", "name": "HumanResources"},
+    "hr": {"password_hash": generate_password_hash("changeme4"), "role": "hr", "name": "Human Resources"},
 }
 
 SHEET_COLUMNS = {
@@ -44,7 +45,7 @@ SHEET_COLUMNS = {
     "Installments": ["id", "sale_id", "payment_date", "amount_paid", "payment_stream", "balance_after"],
     "SpareParts": ["id", "part_name", "model_number", "serial_number", "removed_from_item", "installed_into_item", "date_moved", "logged_by", "notes"],
     "ServiceReports": ["id", "maintenance_id", "item", "client", "issue_reported", "engineer_assigned", "part_used", "part_qty", "date_completed", "notes", "scan_filename"],
-    "Staff": ["id", "name", "role", "phone", "email", "date_joined"],
+    "Staff": ["id", "staff_name", "role", "phone", "email", "date_joined"],
 
     "SalesFieldTrips": ["id", "staff_name", "request_date", "place_to_visit", "location", "purpose_of_visit", "expected_outcome", "amount_needed", "status", "hr_notes", "decided_by", "decided_date"],
     "EngineerFieldTrips": ["id", "staff_name", "request_date", "place_to_visit", "location", "estimated_time", "actual_time_spent", "allowance_needed", "report_submitted", "report_notes", "completed", "payment_status", "payment_date"],
@@ -55,6 +56,7 @@ SHEET_COLUMNS = {
 
 _lock = threading.Lock()
 
+# ---------------------- EXCEL HELPERS ----------------------
 
 def read_all_sheets() -> dict[str, pd.DataFrame]:
     with _lock:
@@ -87,6 +89,7 @@ def new_id(prefix: str) -> str:
 def parse_date(value):
     return pd.to_datetime(value, format="mixed").date()
 
+# ---------------------- DERIVED DATA HELPERS ----------------------
 
 def get_items_with_flags(sheets) -> list[dict]:
     records = df_to_records(sheets["Items"])
@@ -145,6 +148,7 @@ def period_bounds(period_type, period_start):
     end = start + timedelta(days=7) if period_type == "Week" else start + pd.DateOffset(months=1)
     return start, end
 
+
 def compute_target_progress(sheets):
     targets = df_to_records(sheets["Targets"])
     sales_df = sheets["Sales"].copy()
@@ -172,8 +176,19 @@ def compute_target_progress(sheets):
         t["pct"] = min(100, round(actual / t["target_value"] * 100)) if t["target_value"] else 0
     return targets
 
+
+def add_task_deadlines(tasks):
+    for t in tasks:
+        created = pd.to_datetime(t["date_created"], format="mixed")
+        delta = timedelta(days=7) if t["period_type"] == "Week" else timedelta(days=1)
+        t["deadline_iso"] = (created + delta).isoformat()
+    return tasks
+
+# ---------------------- APP ----------------------
+
 app = Flask(__name__)
 app.secret_key = "change-this-to-a-random-string"
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 
 def login_required(role=None):
@@ -188,7 +203,7 @@ def login_required(role=None):
         return wrapped
     return decorator
 
-app.config['TEMPLATES_AUTO_RELOAD'] = True
+# ----- Auth -----
 
 @app.route("/", methods=["GET"])
 def index():
@@ -216,74 +231,7 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-
-@app.route("/engineer/inventory")
-@login_required(role="engineer")
-def inventory_dashboard():
-    sheets = read_all_sheets()
-    items = get_items_with_flags(sheets)
-    low_stock_items = [i for i in items if i["low_stock"]]
-    spare_parts = df_to_records(sheets["SpareParts"].sort_values("date_moved", ascending=False)) if len(sheets["SpareParts"]) else []
-    return render_template("inventory.html", items=items, low_stock_items=low_stock_items, spare_parts=spare_parts)
-
-
-@app.route("/engineer/inventory/add", methods=["POST"])
-@login_required(role="engineer")
-def add_item():
-    sheets = read_all_sheets()
-    df = sheets["Items"]
-    new_row = {
-        "id": new_id("I"), "name": request.form.get("name", ""),
-        "model_number": request.form.get("model_number", ""),
-        "serial_number": request.form.get("serial_number", ""),
-        "location": request.form.get("location", ""),
-        "status": request.form.get("status", "Available"), "stock": request.form.get("stock", "0"),
-        "price": request.form.get("price", "0"),
-        "low_stock_threshold": request.form.get("low_stock_threshold", str(DEFAULT_LOW_STOCK_THRESHOLD)),
-        "preferred_supplier": "", "supplier_contact": "",
-    }
-    sheets["Items"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    write_all_sheets(sheets)
-    flash(f"{new_row['name']} added to inventory.")
-    return redirect(url_for("inventory_dashboard"))
-
-
-@app.route("/engineer/inventory/<item_id>/update", methods=["POST"])
-@login_required(role="engineer")
-def update_item(item_id):
-    sheets = read_all_sheets()
-    df = sheets["Items"]
-    match = df["id"] == item_id
-    if match.any():
-        df.loc[match, "price"] = request.form.get("price", "0")
-        df.loc[match, "low_stock_threshold"] = request.form.get("low_stock_threshold", str(DEFAULT_LOW_STOCK_THRESHOLD))
-        df.loc[match, "preferred_supplier"] = request.form.get("preferred_supplier", "")
-        df.loc[match, "supplier_contact"] = request.form.get("supplier_contact", "")
-        sheets["Items"] = df
-        write_all_sheets(sheets)
-        flash("Item updated.")
-    return redirect(url_for("inventory_dashboard"))
-
-
-@app.route("/engineer/inventory/spare-parts/log", methods=["POST"])
-@login_required(role="engineer")
-def log_spare_part():
-    sheets = read_all_sheets()
-    df = sheets["SpareParts"]
-    new_row = {
-        "id": new_id("SP"), "part_name": request.form.get("part_name", ""),
-        "model_number": request.form.get("model_number", ""),
-        "serial_number": request.form.get("serial_number", ""),
-        "removed_from_item": request.form.get("removed_from_item", ""),
-        "installed_into_item": request.form.get("installed_into_item", ""),
-        "date_moved": request.form.get("date_moved", datetime.now().strftime("%Y-%m-%d")),
-        "logged_by": session.get("name", ""), "notes": request.form.get("notes", ""),
-    }
-    sheets["SpareParts"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    write_all_sheets(sheets)
-    flash("Spare part movement logged.")
-    return redirect(url_for("inventory_dashboard"))
-
+# ----- Engineer: dashboard, complaints, maintenance -----
 
 @app.route("/engineer")
 @login_required(role="engineer")
@@ -294,6 +242,8 @@ def engineer_dashboard():
         maintenance=get_maintenance_with_flags(sheets),
         complaints=df_to_records(sheets["Complaints"].sort_values("date_opened", ascending=False)) if len(sheets["Complaints"]) else [],
         engineers=get_staff(sheets, role="Engineer"),
+        targets=compute_target_progress(sheets),
+        engineer_trips=df_to_records(sheets["EngineerFieldTrips"]),
     )
 
 
@@ -326,45 +276,6 @@ def reassign_engineer(maintenance_id):
         sheets["Maintenance"] = df
         write_all_sheets(sheets)
         flash("Engineer reassigned.")
-    return redirect(url_for("engineer_dashboard"))
-
-# ----- Engineer field trips -----
-
-@app.route("/engineer/field-trip/request", methods=["POST"])
-@login_required(role="engineer")
-def request_engineer_field_trip():
-    sheets = read_all_sheets()
-    df = sheets["EngineerFieldTrips"]
-    new_row = {
-        "id": new_id("FT"), "name": session.get("name", ""),
-        "request_date": request.form.get("request_date", datetime.now().strftime("%Y-%m-%d")),
-        "place_to_visit": request.form.get("place_to_visit", ""),
-        "location": request.form.get("location", ""),
-        "estimated_time": request.form.get("estimated_time", ""),
-        "actual_time_spent": "", "allowance_needed": request.form.get("allowance_needed", "0"),
-        "report_submitted": "No", "report_notes": "", "completed": "No",
-        "payment_status": "Unpaid", "payment_date": "",
-    }
-    sheets["EngineerFieldTrips"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    write_all_sheets(sheets)
-    flash("Field trip logged.")
-    return redirect(url_for("engineer_dashboard"))
-
-
-@app.route("/engineer/field-trip/<trip_id>/complete", methods=["POST"])
-@login_required(role="engineer")
-def complete_engineer_field_trip(trip_id):
-    sheets = read_all_sheets()
-    df = sheets["EngineerFieldTrips"]
-    match = df["id"] == trip_id
-    if match.any():
-        df.loc[match, "actual_time_spent"] = request.form.get("actual_time_spent", "")
-        df.loc[match, "report_notes"] = request.form.get("report_notes", "")
-        df.loc[match, "report_submitted"] = "Yes"
-        df.loc[match, "completed"] = "Yes"
-        sheets["EngineerFieldTrips"] = df
-        write_all_sheets(sheets)
-        flash("Trip marked complete. Now qualifies for allowance review.")
     return redirect(url_for("engineer_dashboard"))
 
 
@@ -455,55 +366,115 @@ def view_service_report(report_id):
     report = reports_df.fillna("")[reports_df["id"] == report_id].iloc[0].to_dict()
     return render_template("service_report.html", report=report)
 
+# ----- Engineer: inventory -----
 
-@app.route("/uploads/<path:filename>")
-@login_required()
-def uploaded_file(filename):
-    return send_from_directory(UPLOAD_DIR, filename)
-
-
-@app.route("/complaint", methods=["GET", "POST"])
-def public_complaint():
-    if request.method == "POST":
-        sheets = read_all_sheets()
-        df = sheets["Complaints"]
-        complaint_id = new_id("C")
-        new_row = {
-            "id": complaint_id, "item": request.form.get("item", ""),
-            "model_number": request.form.get("model_number", ""),
-            "serial_number": request.form.get("serial_number", ""),
-            "client": request.form.get("client", ""), "contact_name": request.form.get("contact_name", ""),
-            "phone": request.form.get("phone", ""), "date_opened": datetime.now().strftime("%Y-%m-%d"),
-            "issue_description": request.form.get("issue_description", ""), "status": "Open",
-            "resolution_notes": "", "call_requested": "Yes" if request.form.get("call_requested") else "No",
-        }
-        sheets["Complaints"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        write_all_sheets(sheets)
-
-        contact = None
-        m_df = sheets["Maintenance"]
-        m_match = m_df[m_df["item"] == new_row["item"]]
-        staff_df = sheets["Staff"]
-        if len(m_match) and m_match.iloc[0]["technician"]:
-            eng_name = m_match.iloc[0]["technician"]
-            staff_match = staff_df[staff_df["name"] == eng_name]
-            if len(staff_match):
-                contact = {"name": eng_name, "phone": staff_match.iloc[0]["phone"], "role": "Engineer"}
-        if contact is None:
-            s_df = sheets["Sales"]
-            s_match = s_df[(s_df["item"] == new_row["item"]) & (s_df["client"] == new_row["client"])]
-            if len(s_match) and s_match.iloc[0]["salesperson"]:
-                rep_name = s_match.iloc[0]["salesperson"]
-                staff_match = staff_df[staff_df["name"] == rep_name]
-                if len(staff_match):
-                    contact = {"name": rep_name, "phone": staff_match.iloc[0]["phone"], "role": "Sales rep"}
-
-        return render_template("complaint_thanks.html", contact=contact, call_requested=new_row["call_requested"] == "Yes")
-
+@app.route("/engineer/inventory")
+@login_required(role="engineer")
+def inventory_dashboard():
     sheets = read_all_sheets()
-    items = df_to_records(sheets["Items"])
-    return render_template("complaint_form.html", items=items)
+    items = get_items_with_flags(sheets)
+    low_stock_items = [i for i in items if i["low_stock"]]
+    spare_parts = df_to_records(sheets["SpareParts"].sort_values("date_moved", ascending=False)) if len(sheets["SpareParts"]) else []
+    return render_template("inventory.html", items=items, low_stock_items=low_stock_items, spare_parts=spare_parts)
 
+
+@app.route("/engineer/inventory/add", methods=["POST"])
+@login_required(role="engineer")
+def add_item():
+    sheets = read_all_sheets()
+    df = sheets["Items"]
+    new_row = {
+        "id": new_id("I"), "name": request.form.get("name", ""),
+        "model_number": request.form.get("model_number", ""),
+        "serial_number": request.form.get("serial_number", ""),
+        "location": request.form.get("location", ""),
+        "status": request.form.get("status", "Available"), "stock": request.form.get("stock", "0"),
+        "price": request.form.get("price", "0"),
+        "low_stock_threshold": request.form.get("low_stock_threshold", str(DEFAULT_LOW_STOCK_THRESHOLD)),
+        "preferred_supplier": "", "supplier_contact": "",
+    }
+    sheets["Items"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash(f"{new_row['name']} added to inventory.")
+    return redirect(url_for("inventory_dashboard"))
+
+
+@app.route("/engineer/inventory/<item_id>/update", methods=["POST"])
+@login_required(role="engineer")
+def update_item(item_id):
+    sheets = read_all_sheets()
+    df = sheets["Items"]
+    match = df["id"] == item_id
+    if match.any():
+        df.loc[match, "price"] = request.form.get("price", "0")
+        df.loc[match, "low_stock_threshold"] = request.form.get("low_stock_threshold", str(DEFAULT_LOW_STOCK_THRESHOLD))
+        df.loc[match, "preferred_supplier"] = request.form.get("preferred_supplier", "")
+        df.loc[match, "supplier_contact"] = request.form.get("supplier_contact", "")
+        sheets["Items"] = df
+        write_all_sheets(sheets)
+        flash("Item updated.")
+    return redirect(url_for("inventory_dashboard"))
+
+
+@app.route("/engineer/inventory/spare-parts/log", methods=["POST"])
+@login_required(role="engineer")
+def log_spare_part():
+    sheets = read_all_sheets()
+    df = sheets["SpareParts"]
+    new_row = {
+        "id": new_id("SP"), "part_name": request.form.get("part_name", ""),
+        "model_number": request.form.get("model_number", ""),
+        "serial_number": request.form.get("serial_number", ""),
+        "removed_from_item": request.form.get("removed_from_item", ""),
+        "installed_into_item": request.form.get("installed_into_item", ""),
+        "date_moved": request.form.get("date_moved", datetime.now().strftime("%Y-%m-%d")),
+        "logged_by": session.get("staff_name", ""), "notes": request.form.get("notes", ""),
+    }
+    sheets["SpareParts"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Spare part movement logged.")
+    return redirect(url_for("inventory_dashboard"))
+
+# ----- Engineer: field trips -----
+
+@app.route("/engineer/field-trip/request", methods=["POST"])
+@login_required(role="engineer")
+def request_engineer_field_trip():
+    sheets = read_all_sheets()
+    df = sheets["EngineerFieldTrips"]
+    new_row = {
+        "id": new_id("FT"), "staff_name": session.get("staff_name", ""),
+        "request_date": request.form.get("request_date", datetime.now().strftime("%Y-%m-%d")),
+        "place_to_visit": request.form.get("place_to_visit", ""),
+        "location": request.form.get("location", ""),
+        "estimated_time": request.form.get("estimated_time", ""),
+        "actual_time_spent": "", "allowance_needed": request.form.get("allowance_needed", "0"),
+        "report_submitted": "No", "report_notes": "", "completed": "No",
+        "payment_status": "Unpaid", "payment_date": "",
+    }
+    sheets["EngineerFieldTrips"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Field trip logged.")
+    return redirect(url_for("engineer_dashboard"))
+
+
+@app.route("/engineer/field-trip/<trip_id>/complete", methods=["POST"])
+@login_required(role="engineer")
+def complete_engineer_field_trip(trip_id):
+    sheets = read_all_sheets()
+    df = sheets["EngineerFieldTrips"]
+    match = df["id"] == trip_id
+    if match.any():
+        df.loc[match, "actual_time_spent"] = request.form.get("actual_time_spent", "")
+        df.loc[match, "report_notes"] = request.form.get("report_notes", "")
+        df.loc[match, "report_submitted"] = "Yes"
+        df.loc[match, "completed"] = "Yes"
+        sheets["EngineerFieldTrips"] = df
+        write_all_sheets(sheets)
+        flash("Trip marked complete. Now qualifies for allowance review.")
+    return redirect(url_for("engineer_dashboard"))
+
+# ----- Sales -----
 
 @app.route("/sales")
 @login_required(role="sales")
@@ -521,6 +492,8 @@ def sales_dashboard():
         sales=sales,
         service_intervals=SERVICE_INTERVALS,
         today=datetime.now().strftime("%Y-%m-%d"),
+        targets=compute_target_progress(sheets),
+        sales_trips=df_to_records(sheets["SalesFieldTrips"]),
     )
 
 
@@ -634,7 +607,7 @@ def request_sales_field_trip():
     sheets = read_all_sheets()
     df = sheets["SalesFieldTrips"]
     new_row = {
-        "id": new_id("FT"), "name": session.get("name", ""),
+        "id": new_id("FT"), "staff_name": session["staff_name"],
         "request_date": request.form.get("request_date", datetime.now().strftime("%Y-%m-%d")),
         "place_to_visit": request.form.get("place_to_visit", ""),
         "location": request.form.get("location", ""),
@@ -648,26 +621,7 @@ def request_sales_field_trip():
     flash("Field trip request submitted for HR approval.")
     return redirect(url_for("sales_dashboard"))
 
-
-@app.route("/targets/add", methods=["POST"])
-def add_target():
-    if session.get("role") not in ("hr", "exec"):
-        return redirect(url_for("login"))
-    sheets = read_all_sheets()
-    df = sheets["Targets"]
-    new_row = {
-        "id": new_id("TG"), "role": request.form.get("role", "Sales"),
-        "staff_name": request.form.get("staff_name", ""),
-        "period_type": request.form.get("period_type", "Week"),
-        "period_start": request.form.get("period_start", ""),
-        "metric": request.form.get("metric", "Sales Count"),
-        "target_value": request.form.get("target_value", "0"),
-        "set_by": session.get("name", ""), "date_set": datetime.now().strftime("%Y-%m-%d"),
-    }
-    sheets["Targets"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    write_all_sheets(sheets)
-    flash("Target set.")
-    return redirect(url_for(f"{session['role']}_dashboard"))
+# ----- Executive -----
 
 @app.route("/exec")
 @login_required(role="exec")
@@ -698,8 +652,7 @@ def exec_dashboard():
         client_sales_df.groupby("payment_stream")["agreed_price"].apply(lambda s: s.astype(float).sum()).sort_values(ascending=False)
         if len(client_sales_df) else pd.Series(dtype=float)
     )
-    
-    revenue_by_stream=[{"stream": s, "revenue": round(float(v), 2)} for s, v in revenue_by_stream.items()]
+    revenue_by_stream = [{"stream": s, "revenue": round(float(v), 2)} for s, v in revenue_by_stream.items()]
 
     revenue_by_item = (
         client_sales_df.groupby("item")["agreed_price"].apply(lambda s: s.astype(float).sum()).sort_values(ascending=False)
@@ -727,9 +680,9 @@ def exec_dashboard():
             "maintenance_due_7d": len(maintenance_due_soon),
             "low_stock_count": low_stock_count,
         },
-        complaints_by_status=complaints_by_status, 
+        complaints_by_status=complaints_by_status,
         recent_activity=activity[:8],
-        service_reports=service_reports, 
+        service_reports=service_reports,
         revenue_by_stream=revenue_by_stream,
         revenue_streams=revenue_streams,
         maintenance_due_soon=maintenance_due_soon,
@@ -778,36 +731,96 @@ def analytics():
     return jsonify({"top_products": top_products, "trend": trend})
 
 
+@app.route("/api/payment-stream-breakdown")
+@login_required()
+def payment_stream_breakdown():
+    range_key = request.args.get("range", "week")
+    days = {"day": 1, "week": 7, "month": 30}.get(range_key, 7)
+    sheets = read_all_sheets()
+    df = sheets["Sales"].copy()
+    df = df[df["type"] != "Maintenance"] if len(df) else df
+    if not len(df):
+        return jsonify([])
+    df["sale_date"] = pd.to_datetime(df["sale_date"], format="mixed")
+    df["agreed_price"] = df["agreed_price"].astype(float)
+    cutoff = datetime.now() - timedelta(days=days)
+    df = df[df["sale_date"] >= cutoff]
+    by_stream = df.groupby("payment_stream")["agreed_price"].sum()
+    return jsonify([{"stream": k or "Unspecified", "amount": round(float(v), 2)} for k, v in by_stream.items()])
+
+# ----- Targets (shared: HR + exec) -----
+
+@app.route("/targets/add", methods=["POST"])
+def add_target():
+    if session.get("role") not in ("hr", "exec"):
+        return redirect(url_for("login"))
+    sheets = read_all_sheets()
+    df = sheets["Targets"]
+    new_row = {
+        "id": new_id("TG"), "role": request.form.get("role", "Sales"),
+        "staff_name": request.form.get("staff_name", ""),
+        "period_type": request.form.get("period_type", "Week"),
+        "period_start": request.form.get("period_start", ""),
+        "metric": request.form.get("metric", "Sales Count"),
+        "target_value": request.form.get("target_value", "0"),
+        "set_by": session.get("staff_name", ""), "date_set": datetime.now().strftime("%Y-%m-%d"),
+    }
+    sheets["Targets"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    write_all_sheets(sheets)
+    flash("Target set.")
+    return redirect(url_for(f"{session['role']}_dashboard"))
+
+
+@app.route("/api/targets-summary")
+@login_required(role="hr")
+def targets_summary():
+    period_type = request.args.get("period", "Week")
+    sheets = read_all_sheets()
+    targets = compute_target_progress(sheets)
+    filtered = [t for t in targets if t["period_type"] == period_type]
+    by_staff = {}
+    for t in filtered:
+        by_staff.setdefault(t["staff_name"], []).append(t)
+    result = []
+    for staff_name, ts in by_staff.items():
+        avg_pct = round(sum(t["pct"] for t in ts) / len(ts))
+        met = sum(1 for t in ts if t["pct"] >= 100)
+        result.append({"name": staff_name, "avg_pct": avg_pct, "targets_met": met, "targets_total": len(ts)})
+    return jsonify(result)
+
+# ----- HR -----
+
 @app.route("/hr")
 @login_required(role="hr")
 def hr_dashboard():
     sheets = read_all_sheets()
     staff = get_staff(sheets)
-
     sales_df = sheets["Sales"]
     client_sales_df = sales_df[sales_df["type"] != "Maintenance"] if len(sales_df) else sales_df
     sales_performance = (
         client_sales_df.groupby("salesperson")["agreed_price"].apply(lambda s: s.astype(float).sum()).sort_values(ascending=False)
         if len(client_sales_df) else pd.Series(dtype=float)
     )
-    sales_performance = [{"name": n, "revenue": round(float(v), 2)} for n, v in sales_performance.items() if n]
+    sales_performance = [{"staff_name": n, "revenue": round(float(v), 2)} for n, v in sales_performance.items() if n]
 
     reports_df = sheets["ServiceReports"]
     service_performance = (
         reports_df.groupby("engineer_assigned").size().sort_values(ascending=False)
         if len(reports_df) else pd.Series(dtype=int)
     )
-    service_performance = [{"name": n, "services_completed": int(v)} for n, v in service_performance.items() if n]
+    service_performance = [{"staff_name": n, "services_completed": int(v)} for n, v in service_performance.items() if n]
 
     sales_trips = df_to_records(sheets["SalesFieldTrips"])
     engineer_trips = df_to_records(sheets["EngineerFieldTrips"])
-    hr_tasks = df_to_records(sheets["HrTasks"])
-    assets = df_to_records(sheets["AssetIssuance"])
     qualifying_trips = [t for t in engineer_trips if t["completed"] == "Yes" and t["payment_status"] != "Paid"]
 
     return render_template(
-        "hr.html", staff=staff, sales_performance=sales_performance, service_performance=service_performance, sales_trips=sales_trips, engineer_trips=engineer_trips, qualifying_trips=qualifying_trips, hr_tasks=hr_tasks, assets=assets, targets=compute_target_progress(sheets),
-        )
+        "hr.html", staff=staff, sales_performance=sales_performance, service_performance=service_performance,
+        sales_trips=sales_trips, engineer_trips=engineer_trips, qualifying_trips=qualifying_trips,
+        hr_tasks=add_task_deadlines(df_to_records(sheets["HrTasks"])),
+        assets=df_to_records(sheets["AssetIssuance"]),
+        targets=compute_target_progress(sheets),
+    )
 
 
 @app.route("/hr/staff/add", methods=["POST"])
@@ -816,16 +829,15 @@ def add_staff():
     sheets = read_all_sheets()
     df = sheets["Staff"]
     new_row = {
-        "id": new_id("ST"), "name": request.form.get("name", ""), "role": request.form.get("role", ""),
+        "id": new_id("ST"), "staff_name": request.form.get("staff_name", ""), "role": request.form.get("role", ""),
         "phone": request.form.get("phone", ""), "email": request.form.get("email", ""),
         "date_joined": request.form.get("date_joined", datetime.now().strftime("%Y-%m-%d")),
     }
     sheets["Staff"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     write_all_sheets(sheets)
-    flash(f"{new_row['name']} added to staff.")
+    flash(f"{new_row['staff_name']} added to staff.")
     return redirect(url_for("hr_dashboard"))
 
-# ----- HR: approvals, tasks, assets, targets -----
 
 @app.route("/hr/field-trip/sales/<trip_id>/decide", methods=["POST"])
 @login_required(role="hr")
@@ -836,7 +848,7 @@ def decide_sales_field_trip(trip_id):
     if match.any():
         df.loc[match, "status"] = request.form.get("decision", "Rejected")
         df.loc[match, "hr_notes"] = request.form.get("hr_notes", "")
-        df.loc[match, "decided_by"] = session.get("name", "")
+        df.loc[match, "decided_by"] = session.get("staff_name", "")
         df.loc[match, "decided_date"] = datetime.now().strftime("%Y-%m-%d")
         sheets["SalesFieldTrips"] = df
         write_all_sheets(sheets)
@@ -883,12 +895,14 @@ def update_hr_task(task_id):
     df = sheets["HrTasks"]
     match = df["id"] == task_id
     if match.any():
+        if df.loc[match, "status"].iloc[0] == "Done":
+            flash("This task is already marked done and locked.")
+            return redirect(url_for("hr_dashboard"))
         new_status = request.form.get("status", "Not Started")
         df.loc[match, "status"] = new_status
         df.loc[match, "date_completed"] = datetime.now().strftime("%Y-%m-%d") if new_status == "Done" else ""
         sheets["HrTasks"] = df
         write_all_sheets(sheets)
-        flash(f"Task status {new_status}.")
     return redirect(url_for("hr_dashboard"))
 
 
@@ -922,6 +936,57 @@ def mark_asset_returned(asset_id):
         flash("Asset marked as returned.")
         write_all_sheets(sheets)
     return redirect(url_for("hr_dashboard"))
+
+# ----- Public complaint form (no login) -----
+
+@app.route("/complaint", methods=["GET", "POST"])
+def public_complaint():
+    if request.method == "POST":
+        sheets = read_all_sheets()
+        df = sheets["Complaints"]
+        complaint_id = new_id("C")
+        new_row = {
+            "id": complaint_id, "item": request.form.get("item", ""),
+            "model_number": request.form.get("model_number", ""),
+            "serial_number": request.form.get("serial_number", ""),
+            "client": request.form.get("client", ""), "contact_name": request.form.get("contact_name", ""),
+            "phone": request.form.get("phone", ""), "date_opened": datetime.now().strftime("%Y-%m-%d"),
+            "issue_description": request.form.get("issue_description", ""), "status": "Open",
+            "resolution_notes": "", "call_requested": "Yes" if request.form.get("call_requested") else "No",
+        }
+        sheets["Complaints"] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        write_all_sheets(sheets)
+
+        contact = None
+        m_df = sheets["Maintenance"]
+        m_match = m_df[m_df["item"] == new_row["item"]]
+        staff_df = sheets["Staff"]
+        if len(m_match) and m_match.iloc[0]["technician"]:
+            eng_name = m_match.iloc[0]["technician"]
+            staff_match = staff_df[staff_df["name"] == eng_name]
+            if len(staff_match):
+                contact = {"name": eng_name, "phone": staff_match.iloc[0]["phone"], "role": "Engineer"}
+        if contact is None:
+            s_df = sheets["Sales"]
+            s_match = s_df[(s_df["item"] == new_row["item"]) & (s_df["client"] == new_row["client"])]
+            if len(s_match) and s_match.iloc[0]["salesperson"]:
+                rep_name = s_match.iloc[0]["salesperson"]
+                staff_match = staff_df[staff_df["name"] == rep_name]
+                if len(staff_match):
+                    contact = {"name": rep_name, "phone": staff_match.iloc[0]["phone"], "role": "Sales rep"}
+
+        return render_template("complaint_thanks.html", contact=contact, call_requested=new_row["call_requested"] == "Yes")
+
+    sheets = read_all_sheets()
+    items = df_to_records(sheets["Items"])
+    return render_template("complaint_form.html", items=items)
+
+# ----- Uploads -----
+
+@app.route("/uploads/<path:filename>")
+@login_required()
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
 
 
 if __name__ == "__main__":

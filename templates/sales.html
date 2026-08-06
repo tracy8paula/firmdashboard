@@ -5,7 +5,7 @@
 
 <section class="mb-10">
   <h2 class="text-md font-semibold text-slate-600 uppercase mb-3">Items</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -32,7 +32,7 @@
 
 <section class="mb-10">
   <h2 class="text-md font-semibold text-slate-600 uppercase mb-3">Log a sale</h2>
-  <div class="bg-white rounded border border-slate-300 p-4">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4">
     <form method="POST" action="{{ url_for('log_sale') }}" class="grid grid-cols-2 gap-4">
 
       <div><label class="block text-xs text-slate-600 mb-1">Item</label>
@@ -50,8 +50,8 @@
         <input name="client" required class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
       </div>
       <div><label class="block text-xs text-slate-600 mb-1">Salesperson</label>
-        <input name="salesperson" required value="{{ session.get('name') }}"
-          class="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+        <input name="salesperson" required readonly value="{{ session['staff_name'] }}"
+          class="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-100">
       </div>
 
       <div><label class="block text-xs text-slate-600 mb-1">Agreed price (total)</label>
@@ -105,7 +105,7 @@
 
 <section class="mb-10">
   <h2 class="text-md font-semibold text-slate-600 uppercase mb-3">Sales history</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -131,14 +131,14 @@
           <td class="px-6 py-2">ugx {{ "{:,.0f}".format(s.amount_paid|float) }}</td>
           <td class="px-3 py-2 {% if s.balance|float > 0 %}text-red-600 font-medium{% endif %}">ugx {{
             "{:,.0f}".format(s.balance|float) }}</td>
-          <td class="px-3 py-2 {% if s.balance|float > 0 and s.balance_due_date < today %}text-red-600{% endif %}">{{
+          <td class="px-1 py-1 {% if s.balance|float > 0 and s.balance_due_date < today %}text-red-600{% endif %}">{{
             s.balance_due_date }}</td>
-          <td class="px-1 py-2">
+          <td class="px-1 py-1">
             {% if s.balance|float > 0 %}
-            <a href="{{ url_for('pay_sale', sale_id=s.id) }}"
-              class="text-medium bg-slate-600 text-white rounded px-1 py-2">Pay balance</a>
+            <a href="{{ url_for('pay_sale', sale_id=s.id) }}" class="text-sm text-indigo rounded px-0.5 py-0.5">Pay
+              balance</a>
             {% else %}
-            <span class="text-medium text-green-700">Paid in full</span>
+            <span class="text-sm text-green-700">Paid in full</span>
             {% endif %}
           </td>
         </tr>
@@ -149,23 +149,24 @@
 </section>
 
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Targets</h2>
-  <div class="bg-white rounded border border-slate-300 p-4 space-y-3">
-    {% for t in targets if t.staff_name == session.get('name') %}
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Targets to meet</h2>
+  <div class="bg-white rounded-2xl border border-slate-300 p-4 space-y-3">
+    {% for t in targets if t.role == 'Sales' %}
     <div>
-      <div class="flex justify-between text-sm mb-1"><span>{{ t.metric }} ({{ t.period_type }})</span><span>{{ t.actual
-          }} / {{ t.target_value|int }}</span></div>
-      <div class="w-full bg-slate-200 rounded h-2">
-        <div class="bg-slate-700 h-2 rounded" style="width: {{ t.pct }}%"></div>
+      <div class="flex justify-between text-sm mb-1"><span>{{ t.staff_name }} — {{ t.metric }} ({{ t.period_type
+          }})</span><span>{{ t.actual }} / {{ t.target_value|int }}</span></div>
+      <div class="w-full bg-slate-100 rounded h-2">
+        <div class="bg-slate-900 h-2 rounded" style="width: {{ t.pct }}%"></div>
       </div>
     </div>
-    {% else %}<p class="text-sm text-slate-400">No targets set yet.</p>{% endfor %}
+  </div>
+  {% else %}<p class="text-sm text-slate-400">No targets set yet.</p>{% endfor %}
   </div>
 </section>
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Request a Field Trip</h2>
-  <div class="bg-white rounded border border-slate-300 p-4">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4">
     <form method="POST" action="{{ url_for('request_sales_field_trip') }}" class="grid grid-cols-2 gap-4">
       <input name="staff_name" type="text" placeholder="Staff name" required
         class="border border-slate-300 rounded px-3 py-2 text-sm">
@@ -180,7 +181,7 @@
         class="col-span-2 border border-slate-300 rounded px-3 py-2 text-sm"></textarea>
       <textarea name="expected_outcome" placeholder="Expected outcome" required
         class="col-span-2 border border-slate-300 rounded px-3 py-2 text-sm"></textarea>
-      <button type="submit" class="col-span-2 bg-slate-900 text-white rounded px-4 py-2 text-sm">Submit for HR
+      <button type="submit" class="col-span-2 bg-slate-700 text-white rounded px-4 py-2 text-sm">Submit for HR
         approval</button>
     </form>
   </div>
@@ -188,7 +189,7 @@
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Field Trip Requests</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -201,9 +202,9 @@
         </tr>
       </thead>
       <tbody>
-        {% for t in sales_trips if t.name == session.get('name') %}
+        {% for t in sales_trips if t.staff_name == session.get('staff_name') %}
         <tr class="border-t">
-          <td class="px-3 py-2">{{ t.name }}</td>
+          <td class="px-3 py-2">{{ t.staff_name }}</td>
           <td class="px-3 py-2">{{ t.request_date }}</td>
           <td class="px-3 py-2">{{ t.place_to_visit }}</td>
           <td class="px-3 py-2">ugx {{ "{:,.0f}".format(t.amount_needed|float) }}</td>

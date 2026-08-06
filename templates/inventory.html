@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Inventory{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">Inventory</h1>
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Depleting Stock &amp; Suppliers</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-100 text-left">
         <tr>
@@ -36,8 +35,8 @@
 </section>
 
 <section class="mb-10">
-  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Add / Update Items</h2>
-  <details class="bg-white rounded border border-slate-200 p-4">
+  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Add Items</h2>
+  <details class="bg-white rounded-2xl border border-slate-200 p-4">
     <summary class="text-sm font-medium cursor-pointer">+ Add new item</summary>
     <form method="POST" action="{{ url_for('add_item') }}" class="grid grid-cols-3 gap-3 mt-3">
       <input name="name" placeholder="Name" required class="border rounded px-2 py-1 text-sm">
@@ -45,14 +44,14 @@
       <input name="price" type="number" step="0.01" placeholder="Price" class="border rounded px-2 py-1 text-sm">
       <input name="low_stock_threshold" type="number" placeholder="Low stock threshold (default 5)"
         class="border rounded px-2 py-1 text-sm">
-      <button type="submit" class="bg-slate-900 text-white rounded px-3 py-1 text-sm">Add</button>
+      <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm">Add</button>
     </form>
   </details>
 </section>
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Items</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden mb-4">
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-4">
     <table class="w-full text-sm">
       <thead class="bg-slate-100 text-left">
         <tr>
@@ -84,9 +83,9 @@
 </section>
 
 
-<section>
-  <h2 class="text-sm font-semibold text-slate-500 uppercase mb-3">Spare Parts Log</h2>
-  <div class="bg-white rounded border border-slate-200 p-4 mb-4">
+<section class="mb-10">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Spare Parts Log</h2>
+  <div class="bg-white rounded-2xl border border-slate-300 p-4 mb-10">
     <form method="POST" action="{{ url_for('log_spare_part') }}" class="grid grid-cols-3 gap-3">
       <input name="part_name" placeholder="Part name" required class="border rounded px-2 py-1 text-sm">
       <input name="serial_number" placeholder="Serial number" class="border rounded px-2 py-1 text-sm">
@@ -94,12 +93,12 @@
       <input name="removed_from_item" placeholder="Removed from (device)" class="border rounded px-2 py-1 text-sm">
       <input name="installed_into_item" placeholder="Installed into (device)" class="border rounded px-2 py-1 text-sm">
       <input name="notes" placeholder="Notes" class="border rounded px-2 py-1 text-sm">
-      <button type="submit" class="bg-slate-900 text-white rounded px-3 py-1 text-sm col-span-3">Log movement</button>
+      <button type="submit" class="bg-slate-700 text-white rounded px-3 py-1 text-sm col-span-3">Log movement</button>
     </form>
   </div>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left">
+      <thead class="bg-slate-200 text-left">
         <tr>
           <th class="px-3 py-1">Date</th>
           <th class="px-3 py-2">Part</th>

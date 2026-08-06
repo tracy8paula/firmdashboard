@@ -4,7 +4,7 @@
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Maintenance</h2>
-  <div class="bg-white rounded border border-slate-200 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -60,7 +60,7 @@
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Complaints</h2>
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -101,7 +101,7 @@
               </select>
               <input name="resolution_notes" value="{{ c.resolution_notes }}" placeholder="Notes"
                 class="border rounded text-xs px-1 py-1 w-full">
-              <button type="submit" class="w-full bg-slate-900 text-white rounded text-xs py-1">Save</button>
+              <button type="submit" class="w-full bg-slate-700 text-white rounded text-xs py-1">Save</button>
             </form>
             {% else %}<span class="text-xs text-slate-400">Locked</span>{% endif %}
           </td>
@@ -115,36 +115,28 @@
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">My Targets</h2>
 
-  <div class="bg-white rounded border border-slate-300 p-4 space-y-3">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4 space-y-3">
     <table class="w-full text-sm">
-      <thead class="text-slate-600 text-left">
-        <tr>
-          <th clas="px-5 py-2 font-medium">Staff_name</th>
-          <th clas="px-5 py-2 font-medium">Metric</th>
-          <th clas="px-5 py-2 font-medium">Actual</th>
-          <th clas="px-5 py-2 font-medium">Target</th>
-        </tr>
-      </thead>
       <tbody>
-        {% for t in targets if t.staff_name == session.get('name') %}
-        <tr class="border-t">
-          <td class="px-5 py-2">{{ t.staff_name }}</td>
-          <td class="px-5 py-2">{{ t.metric }} ({{ t.period_type }})</td>
-          <td class="px-5 py-2">{{ t.actual }}</td>
-          <td class="px-5 py-2">{{ t.target_value|int }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        {% for t in targets if t.role == 'Engineer' %}
+        <div>
+          <div class="" flex justify-between text-sm mb1><span>{{ t.staff_name }} - {{ t.metric }} ({{ t.period_type
+              }})</span><span>{{ t.actual }} / {{ t.target_value|int }}</span></div>
+        </div>
+        <div class="w-full bg-slate-100 rounded h-2">
+          <div class="bg-slate-900 h-2 rounded" style="width: {{ t.pct }}%"></div>
+        </div>
+  </div>
+  {% else %} <p class="text-slate-400 text-sm">No targets assigned.</p> {% endfor %} </table>
   </div>
 </section>
 
 <section class="mb-10">
   <h2 class="text-sm font-semibold text-slate-600 uppercase mb-3">Field Trips</h2>
-  <div class="bg-white rounded border border-slate-300 p-4 mb-4">
+  <div class="bg-white rounded-2xl border border-slate-300 p-4 mb-4">
     <form method="POST" action="{{ url_for('request_engineer_field_trip') }}" class="grid grid-cols-2 gap-4">
-      <input name="staff_name" type="text" placeholder="Name" required
-        class="border border-slate-300 rounded px-3 py-2 text-sm">
+      <input name="staff_name" type="text" value="{{ session.get('staff_name') }}" readonly
+        class="border border-slate-300 rounded px-3 py-2 text-sm bg-slate-100">
       <input name="request_date" type="date" required class="border border-slate-300 rounded px-3 py-2 text-sm">
       <input name="place_to_visit" placeholder="Place/business to visit" required
         class="border border-slate-300 rounded px-3 py-2 text-sm">
@@ -157,7 +149,7 @@
     </form>
   </div>
 
-  <div class="bg-white rounded border border-slate-300 overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-300 overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-slate-200 text-left">
         <tr>
@@ -172,7 +164,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for t in engineer_trips if t.name == session.get('name') %}
+        {% for t in engineer_trips if t.staff_name == session.get('staff_name') %}
         <tr class="border-t align-top">
           <td class="px-3 py-2">{{ t.staff_name }}</td>
           <td class="px-3 py-2">{{ t.request_date }}</td>
